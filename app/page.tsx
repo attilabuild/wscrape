@@ -1,10 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, ValidationError } from '@formspree/react';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [state, handleSubmit] = useForm("mblkbgqv");
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push('/dashboard');
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
@@ -20,17 +33,24 @@ export default function Home() {
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-8">
                 <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a>
+                <a href="#pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
                 <a href="#benefits" className="text-gray-300 hover:text-white transition-colors">Benefits</a>
                 <a href="#contact" className="text-gray-300 hover:text-white transition-colors">Contact</a>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button 
-                onClick={() => document.querySelector('form')?.scrollIntoView({ behavior: 'smooth' })}
+              <a 
+                href="/login"
+                className="text-gray-300 hover:text-white transition-colors mr-2"
+              >
+                Login
+              </a>
+              <a 
+                href="/signup"
                 className="bg-gradient-to-r  text-black bg-white  px-6 py-2 rounded-full font-medium hover:bg-gray-200 transition-all"
               >
-                Join Waitlist
-              </button>
+                Get started
+              </a>
             </div>
           </div>
         </div>
@@ -50,73 +70,38 @@ export default function Home() {
             <svg className="mr-2 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
             </svg>
-            <span className="font-medium">Coming Soon, Join the Beta</span>
+            <span className="font-medium">AI-Powered Content Creation</span>
           </div>
 
           {/* Main Heading - Single cohesive block */}
           <h1 className="mb-6 text-3xl font-bold leading-[1.1] text-white sm:text-4xl md:text-5xl lg:text-6xl">
-            Scrape, Sort, and Analyze{" "}
+            The Most Powerful{" "}
             <span className="text-gray-300">
-              Social Media Comments
+            AI App for
             </span>{" "}
-            Instantly
+          Viral Content Creation
           </h1>
 
           {/* Subtitle */}
           <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-gray-300">
-            Wscrape helps you uncover the most-liked and most-recent comments on TikTok, Instagram, and YouTube: perfect for creators, marketers, and researchers.
+            Scrape viral content, analyze comments, generate AI scripts, predict viral potential, and manage your content library - all in one powerful platform.
           </p>
 
-          {/* Waitlist Form */}
-          {state.succeeded ? (
-            <div className="mx-auto max-w-lg rounded-lg border border-green-600/20 bg-green-900/20 p-6 backdrop-blur-sm">
-              <div className="mb-2 flex items-center justify-center text-xl font-semibold text-green-400">
-                <svg className="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                You're on the list!
-              </div>
-              <p className="text-green-300">We'll notify you as soon as wscrape is ready.</p>
-            </div>
-          ) : (
-            <div className="mx-auto max-w-lg">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="Your name (optional)"
-                    className="flex-1 rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all focus:border-white focus:bg-white/10 focus:outline-none"
-                  />
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Your email address"
-                    required
-                    className="flex-1 rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all focus:border-white focus:bg-white/10 focus:outline-none"
-                  />
-                </div>
-                <ValidationError 
-                  prefix="Email" 
-                  field="email"
-                  errors={state.errors}
-                  className="text-red-400 text-sm"
-                />
-                <button
-                  type="submit"
-                  disabled={state.submitting}
-                  className="group relative inline-flex h-12 w-full items-center justify-center overflow-hidden rounded-lg bg-white px-8 font-semibold text-black transition-all duration-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span className="relative">
-                    {state.submitting ? 'Joining...' : 'Join the Waitlist'}
-                  </span>
-                </button>
-              </form>
-              <p className="mt-4 text-sm text-gray-500">
-                We'll only email you about the launch. No spam.
-              </p>
-            </div>
-          )}
+          {/* Hero CTAs */}
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href="/signup"
+              className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 font-medium text-black hover:bg-gray-200 transition-colors"
+            >
+              Get started for $29.99/mo
+            </a>
+            <a
+              href="#pricing"
+              className="inline-flex items-center justify-center rounded-lg border border-white/20 bg-white/5 px-6 py-3 font-medium text-white hover:bg-white/10 transition-colors"
+            >
+              View pricing
+            </a>
+          </div>
         </div>
       </section>
 
@@ -131,10 +116,10 @@ export default function Home() {
               <span className="font-medium">Features</span>
             </div>
             <h2 className="max-w-4xl mx-auto text-center text-4xl font-bold leading-tight text-white md:text-6xl">
-              How wscrape Works
+              Everything You Need to Go Viral
             </h2>
             <p className="mx-auto mt-6 max-w-2xl text-center text-lg text-gray-300">
-              Powerful tools to extract, analyze, and understand social media engagement
+              From content scraping to AI generation, viral prediction to comment analysis - your complete social media toolkit
             </p>
           </div>
           
@@ -145,21 +130,21 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h3 className="mb-4 text-xl font-semibold text-white">Scrape Any Video or Post</h3>
+              <h3 className="mb-4 text-xl font-semibold text-white">Content Scraping & Analysis</h3>
               <p className="text-gray-400 leading-relaxed">
-                Pull comments from TikTok, Instagram, or YouTube instantly. Just paste the link and let wscrape do the work.
+                Extract viral content from any creator on TikTok, Instagram, and more. Analyze hooks, captions, and performance metrics to understand what works.
               </p>
             </div>
 
             <div className="group rounded-lg border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:bg-white/10">
               <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-white/10">
                 <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
-              <h3 className="mb-4 text-xl font-semibold text-white">Sort by Likes or Date</h3>
+              <h3 className="mb-4 text-xl font-semibold text-white">Comment Intelligence</h3>
               <p className="text-gray-400 leading-relaxed">
-                Quickly find the most engaging conversations by sorting comments by popularity or recency.
+                Scrape and analyze comments from viral posts. Understand audience sentiment, extract engagement patterns, and discover what resonates with viewers.
               </p>
             </div>
 
@@ -169,9 +154,9 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <h3 className="mb-4 text-xl font-semibold text-white">Export and Analyze</h3>
+              <h3 className="mb-4 text-xl font-semibold text-white">AI Content Generation & Prediction</h3>
               <p className="text-gray-400 leading-relaxed">
-                Save comments for research, marketing, or insights. Export to CSV or analyze trends directly in wscrape.
+                Generate viral scripts with AI, predict content performance, and create unlimited variations of winning content tailored to your niche.
               </p>
             </div>
           </div>
@@ -190,7 +175,7 @@ export default function Home() {
                 <span className="font-medium">Benefits</span>
               </div>
               <h2 className="mb-8 text-4xl font-bold leading-tight text-white md:text-6xl">
-                Why wscrape?
+                Why Creators Love AI?
               </h2>
               <div className="space-y-8">
                 <div className="flex items-start space-x-4">
@@ -200,8 +185,8 @@ export default function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="mb-2 text-xl font-semibold text-white">Save time by seeing top comments instantly</h3>
-                    <p className="text-gray-400">No more endless scrolling through thousands of comments. Get the best insights in seconds.</p>
+                    <h3 className="mb-2 text-xl font-semibold text-white">Never run out of content ideas again</h3>
+                    <p className="text-gray-400">Generate endless viral content variations. Turn one winning post into weeks of fresh content for your brand.</p>
                   </div>
                 </div>
 
@@ -212,8 +197,8 @@ export default function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="mb-2 text-xl font-semibold text-white">Understand what resonates with your audience</h3>
-                    <p className="text-gray-400">Discover the types of content and conversations that generate the most engagement.</p>
+                    <h3 className="mb-2 text-xl font-semibold text-white">Steal from million-dollar creators instantly</h3>
+                    <p className="text-gray-400">Extract winning formulas from top creators. Copy their hooks, adapt their strategies, and scale faster than ever.</p>
                   </div>
                 </div>
 
@@ -224,8 +209,8 @@ export default function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="mb-2 text-xl font-semibold text-white">Plan content and campaigns smarter</h3>
-                    <p className="text-gray-400">Use real engagement data to inform your content strategy and marketing decisions.</p>
+                    <h3 className="mb-2 text-xl font-semibold text-white">10x your content output with AI automation</h3>
+                    <p className="text-gray-400">Scale your content creation to compete with big creators. Create more, post more, grow faster with AI assistance.</p>
                   </div>
                 </div>
               </div>
@@ -240,21 +225,104 @@ export default function Home() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
                     </div>
-                    <h3 className="mb-2 text-2xl font-bold text-white">Data-Driven Insights</h3>
-                    <p className="text-gray-400">Transform social media noise into actionable intelligence</p>
+                    <h3 className="mb-2 text-2xl font-bold text-white">AI Content Engine</h3>
+                    <p className="text-gray-400">Transform viral content into endless fresh ideas</p>
                   </div>
                   <div className="mt-8 grid grid-cols-2 gap-4">
                     <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-                      <div className="text-2xl font-bold text-white">85%</div>
-                      <div className="text-sm text-gray-400">Faster Analysis</div>
+                      <div className="text-2xl font-bold text-white">10x</div>
+                      <div className="text-sm text-gray-400">Content Speed</div>
                     </div>
                     <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-                      <div className="text-2xl font-bold text-white">10k+</div>
-                      <div className="text-sm text-gray-400">Comments/Min</div>
+                      <div className="text-2xl font-bold text-white">∞</div>
+                      <div className="text-sm text-gray-400">Ideas Generated</div>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="relative py-20 bg-black">
+        {/* Background Grid */}
+        <div className="absolute inset-0 h-full w-full bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+        
+        <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
+          <div className="mb-8 inline-flex h-7 items-center justify-between rounded-full border border-white/5 bg-white/10 px-3 text-xs text-white">
+            <span className="font-medium">Simple Pricing</span>
+          </div>
+          <h2 className="mb-6 text-4xl font-bold leading-tight text-white md:text-6xl">
+            One Plan. Everything Included.
+          </h2>
+          <p className="mb-12 text-xl text-gray-300">
+            No hidden fees. No complicated tiers. Just powerful tools to grow your content.
+          </p>
+
+          {/* Pricing Card */}
+          <div className="mx-auto max-w-lg">
+            <div className="rounded-2xl border-2 border-white/20 bg-white/5 p-8 backdrop-blur-sm hover:border-white/40 transition-all">
+              {/* Price */}
+              <div className="mb-8 text-center">
+                <div className="text-6xl font-bold text-white mb-2">
+                  $29.99
+                </div>
+                <div className="text-gray-400 text-lg">per month</div>
+              </div>
+
+              {/* Features Grid */}
+              <div className="space-y-4 mb-8 text-left">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-white">Unlimited Content Scraping</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-white">AI-Powered Viral Analysis</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-white">AI Content Generation</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-white">Content Calendar & Scheduling</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-white">Export Data (CSV/JSON)</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-white">Priority Support</span>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <a
+                href="/signup"
+                className="block w-full bg-white text-black py-4 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors text-center"
+              >
+                Start Creating Now
+              </a>
+
+              <p className="mt-6 text-sm text-gray-400">
+                Cancel anytime. No long-term contracts. Secure payment by Stripe.
+              </p>
             </div>
           </div>
         </div>
@@ -267,38 +335,36 @@ export default function Home() {
         
         <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
           <div className="mb-8 inline-flex h-7 items-center justify-between rounded-full border border-white/5 bg-white/10 px-3 text-xs text-white">
-            <span className="font-medium">Early Access</span>
+            <span className="font-medium">AI Content Creator</span>
           </div>
           <h2 className="mb-6 text-4xl font-bold leading-tight text-white md:text-6xl">
-            Join the Early Beta
+            Start Creating Today
           </h2>
           <p className="mb-12 text-xl text-gray-300">
-            Sign up now to be among the first to access wscrape. Spaces are limited!
+            Join thousands of creators using AI to scale their content. Professional tools for serious creators.
           </p>
           
           <div className="mb-12 grid gap-8 md:grid-cols-3">
             <div className="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-              <div className="mb-2 text-3xl font-bold text-white">500+</div>
-              <p className="text-gray-400">Creators on waitlist</p>
+              <div className="mb-2 text-3xl font-bold text-white">10K+</div>
+              <p className="text-gray-400">Content pieces generated</p>
             </div>
             <div className="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-              <div className="mb-2 text-3xl font-bold text-white">3</div>
-              <p className="text-gray-400">Major platforms supported</p>
+              <div className="mb-2 text-3xl font-bold text-white">5+</div>
+              <p className="text-gray-400">Analysis tools</p>
             </div>
             <div className="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-              <div className="mb-2 text-3xl font-bold text-white">Late 2025</div>
-              <p className="text-gray-400">Launch date</p>
+              <div className="mb-2 text-3xl font-bold text-white">$20</div>
+              <p className="text-gray-400">Per month</p>
             </div>
           </div>
 
-          {!state.succeeded && (
-            <button
-              onClick={() => document.querySelector('form')?.scrollIntoView({ behavior: 'smooth' })}
-              className="group relative inline-flex h-12 items-center justify-center overflow-hidden rounded-md bg-white px-8 font-medium text-black transition-all duration-300 hover:bg-gray-200"
-            >
-              <span className="relative">Join the Waitlist</span>
-            </button>
-          )}
+          <a
+            href="/login"
+            className="group relative inline-flex h-12 items-center justify-center overflow-hidden rounded-md bg-white px-8 font-medium text-black transition-all duration-300 hover:bg-gray-200"
+          >
+            <span className="relative">Get started</span>
+          </a>
         </div>
       </section>
 
@@ -314,7 +380,7 @@ export default function Home() {
                 wscrape
               </div>
               <p className="mb-4 text-gray-400">
-                Scrape, sort, and analyze social media comments instantly.
+                AI-powered content creation and competitor analysis for social media creators.
               </p>
               <div className="flex space-x-4">
                 <a href="#" className="text-gray-400 transition-colors hover:text-white">
@@ -350,7 +416,7 @@ export default function Home() {
           
           <div className="mt-8 flex flex-col items-center justify-between border-t border-white/10 pt-8 md:flex-row">
             <p className="mb-4 text-sm text-gray-400 md:mb-0">
-              wscrape is not affiliated with TikTok, Instagram, or YouTube.
+              wscrape - AI Content Creation Assistant. Not affiliated with TikTok or Instagram.
             </p>
             <p className="text-sm text-gray-500">
               Copyright © 2025 wscrape. All rights reserved.
