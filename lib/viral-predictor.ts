@@ -91,7 +91,7 @@ export class ViralPredictor {
   };
 
   // Optimal posting times by day of week (in hours)
-  private readonly OPTIMAL_TIMES = {
+  private readonly OPTIMAL_TIMES: Record<number, number[]> = {
     0: [10, 14, 19], // Sunday
     1: [9, 12, 17],  // Monday
     2: [9, 13, 18],  // Tuesday
@@ -819,7 +819,7 @@ export class ViralPredictor {
   }
 
   private findGapOpportunities(posts: ViralPost[]): string[] {
-    const gaps = [];
+    const gaps: string[] = [];
     
     // Analyze posting frequency by time
     const timeSlots: { [key: string]: number } = {};

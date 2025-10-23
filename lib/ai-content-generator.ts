@@ -469,7 +469,7 @@ export class AIContentGenerator {
    * Enhance with viral words
    */
   private enhanceWithViralWords(text: string, tone: string): string {
-    const wordSets = {
+    const wordSets: Record<string, string[]> = {
       motivational: [...this.VIRAL_WORDS.emotion_words, ...this.VIRAL_WORDS.action_words],
       educational: [...this.VIRAL_WORDS.power_words, ...this.VIRAL_WORDS.exclusivity_words],
       entertaining: [...this.VIRAL_WORDS.emotion_words, ...this.VIRAL_WORDS.urgency_words],
