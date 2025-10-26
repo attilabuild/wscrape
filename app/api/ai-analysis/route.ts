@@ -33,21 +33,28 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.log('AI Analysis auth failed:', { error: authError, hasUser: !!user });
       return NextResponse.json(
         { error: 'Unauthorized - Please login' },
         { status: 401 }
       );
     }
 
+    // Debug: Log user ID
+    console.log('AI Analysis - User ID from session:', user.id);
+    
     // 🔒 SECURITY: Verify active subscription (SERVER-SIDE - CANNOT BE BYPASSED)
     const subscriptionCheck = await requireActiveSubscription(user.id);
     
     if (!subscriptionCheck.authorized) {
+      console.log('AI Analysis subscription check failed:', subscriptionCheck);
       return NextResponse.json(
         { error: subscriptionCheck.error },
         { status: subscriptionCheck.status }
       );
     }
+    
+    console.log('AI Analysis - Subscription authorized!');
 
     const body: AIAnalysisRequest = await request.json();
     const { action, payload } = body;
