@@ -28,18 +28,30 @@ export async function createSupabaseFromRequest(request: NextRequest) {
   // Get the auth token from the Authorization header
   const authHeader = request.headers.get('authorization');
   const token = authHeader?.replace('Bearer ', '');
-
+  
+  // Get all cookies from the request
+  const cookieHeader = request.headers.get('cookie');
+  
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     },
     global: {
-      headers: token ? {
-        Authorization: `Bearer ${token}`
-      } : {}
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...(cookieHeader && { Cookie: cookieHeader })
+      }
     }
   });
+
+  // If we have a token, set it as the session
+  if (token) {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error) {
+      console.log('Token validation error:', error.message);
+    }
+  }
 
   return supabase;
 }
