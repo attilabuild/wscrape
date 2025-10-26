@@ -238,12 +238,14 @@ export default function Tools({
                 emptyStateTitle="No Videos Found"
                 emptyStateDescription={`No recent videos found for @${lastScrapedUser} on ${selectedPlatform}. Try a different handle or switch platform.`}
                 onSaveContent={async (content) => {
+                  console.log('Save content clicked!', content);
                   try {
                     const { data: { user }, error: authError } = await (await import('@/lib/supabase')).supabase.auth.getUser();
                     if (!user) {
                       alert('Please log in to save content');
                       return;
                     }
+                    console.log('User authenticated:', user.id);
 
                     // Get the auth token
                     const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
@@ -253,8 +255,10 @@ export default function Tools({
                       alert('Please log in to save content');
                       return;
                     }
+                    console.log('Token retrieved');
 
                     // Use the content API endpoint with auth
+                    console.log('Saving content to API...');
                     const response = await fetch('/api/content', {
                       method: 'POST',
                       headers: {
@@ -278,15 +282,18 @@ export default function Tools({
                       })
                     });
 
+                    console.log('API response:', response.status);
                     if (!response.ok) {
                       const errorData = await response.json();
+                      console.error('API error:', errorData);
                       throw new Error(errorData.error || 'Failed to save content');
                     }
                     
+                    console.log('Content saved successfully!');
                     alert('✅ Content saved to library! Go to Contents tab to view it.');
                   } catch (error: any) {
                     console.error('Save content error:', error);
-                    alert('❌ Failed to save content: ' + error.message);
+                    alert('❌ Failed to save content: ' + (error.message || 'Unknown error'));
                   }
                 }}
               />
