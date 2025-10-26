@@ -17,6 +17,10 @@ export interface SubscriptionStatus {
  */
 export async function verifyActiveSubscription(userId: string): Promise<SubscriptionStatus> {
   try {
+    // Check if service role key is available
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    console.log('Service role key exists:', !!serviceKey);
+    
     // Create server-side Supabase client WITH SERVICE ROLE KEY (bypasses RLS)
     const supabase = createServerSupabaseClient();
     
