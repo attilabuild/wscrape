@@ -129,6 +129,14 @@ export default function Profile({
               <option value="fitness">Fitness</option>
               <option value="lifestyle">Lifestyle</option>
               <option value="education">Education</option>
+              <option value="tech">Tech</option>
+              <option value="finance">Finance</option>
+              <option value="crypto">Crypto</option>
+              <option value="travel">Travel</option>
+              <option value="food">Food</option>
+              <option value="fashion">Fashion</option>
+              <option value="beauty">Beauty</option>
+              <option value="gaming">Gaming</option>
             </select>
           </div>
           <div className="md:col-span-2">

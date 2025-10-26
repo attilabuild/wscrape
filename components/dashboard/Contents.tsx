@@ -450,6 +450,14 @@ export default function Contents({
               <option value="fitness">Fitness</option>
               <option value="lifestyle">Lifestyle</option>
               <option value="education">Education</option>
+              <option value="tech">Tech</option>
+              <option value="finance">Finance</option>
+              <option value="crypto">Crypto</option>
+              <option value="travel">Travel</option>
+              <option value="food">Food</option>
+              <option value="fashion">Fashion</option>
+              <option value="beauty">Beauty</option>
+              <option value="gaming">Gaming</option>
               <option value="general">General</option>
             </select>
           </div>
@@ -512,11 +520,91 @@ export default function Contents({
             onClick={() => filterContentByNiche('fitness')}
             className={`px-3 py-1 text-xs rounded-lg transition-colors ${
               contentFilters.niche === 'fitness' 
-                ? 'bg-white text-black' 
+                ? 'bg-white text-black'
                 : 'bg-white/10 text-white hover:bg-white/20'
             }`}
           >
             Fitness
+          </button>
+          <button
+            onClick={() => filterContentByNiche('tech')}
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+              contentFilters.niche === 'tech' 
+                ? 'bg-white text-black'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            Tech
+          </button>
+          <button
+            onClick={() => filterContentByNiche('finance')}
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+              contentFilters.niche === 'finance' 
+                ? 'bg-white text-black'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            Finance
+          </button>
+          <button
+            onClick={() => filterContentByNiche('crypto')}
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+              contentFilters.niche === 'crypto' 
+                ? 'bg-white text-black'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            Crypto
+          </button>
+          <button
+            onClick={() => filterContentByNiche('travel')}
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+              contentFilters.niche === 'travel' 
+                ? 'bg-white text-black'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            Travel
+          </button>
+          <button
+            onClick={() => filterContentByNiche('food')}
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+              contentFilters.niche === 'food' 
+                ? 'bg-white text-black'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            Food
+          </button>
+          <button
+            onClick={() => filterContentByNiche('fashion')}
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+              contentFilters.niche === 'fashion' 
+                ? 'bg-white text-black'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            Fashion
+          </button>
+          <button
+            onClick={() => filterContentByNiche('beauty')}
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+              contentFilters.niche === 'beauty' 
+                ? 'bg-white text-black'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            Beauty
+          </button>
+          <button
+            onClick={() => filterContentByNiche('gaming')}
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+              contentFilters.niche === 'gaming' 
+                ? 'bg-white text-black'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            Gaming
           </button>
         </div>
       </div>
@@ -623,6 +711,14 @@ export default function Contents({
                 <option value="fitness">Fitness</option>
                 <option value="lifestyle">Lifestyle</option>
                 <option value="education">Education</option>
+                <option value="tech">Tech</option>
+                <option value="finance">Finance</option>
+                <option value="crypto">Crypto</option>
+                <option value="travel">Travel</option>
+                <option value="food">Food</option>
+                <option value="fashion">Fashion</option>
+                <option value="beauty">Beauty</option>
+                <option value="gaming">Gaming</option>
               </select>
             </div>
 

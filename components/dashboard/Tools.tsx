@@ -630,17 +630,25 @@ export default function Tools({
 
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-4">
-                <select 
-                  value={selectedNiche} 
-                  onChange={(e) => setSelectedNiche(e.target.value)}
-                  className="bg-white/10 text-white rounded-lg px-3 py-2 border border-white/20"
-                >
-                  <option value="business">Business</option>
-                  <option value="motivation">Motivation</option>
-                  <option value="fitness">Fitness</option>
-                  <option value="lifestyle">Lifestyle</option>
-                  <option value="education">Education</option>
-                </select>
+              <select 
+                value={selectedNiche} 
+                onChange={(e) => setSelectedNiche(e.target.value)}
+                className="bg-white/10 text-white rounded-lg px-3 py-2 border border-white/20"
+              >
+                <option value="business">Business</option>
+                <option value="motivation">Motivation</option>
+                <option value="fitness">Fitness</option>
+                <option value="lifestyle">Lifestyle</option>
+                <option value="education">Education</option>
+                <option value="tech">Tech</option>
+                <option value="finance">Finance</option>
+                <option value="crypto">Crypto</option>
+                <option value="travel">Travel</option>
+                <option value="food">Food</option>
+                <option value="fashion">Fashion</option>
+                <option value="beauty">Beauty</option>
+                <option value="gaming">Gaming</option>
+              </select>
                 <select 
                   value={contentQuantity} 
                   onChange={(e) => setContentQuantity(Number(e.target.value))}
@@ -742,6 +750,14 @@ export default function Tools({
                 <option value="fitness">Fitness</option>
                 <option value="lifestyle">Lifestyle</option>
                 <option value="education">Education</option>
+                <option value="tech">Tech</option>
+                <option value="finance">Finance</option>
+                <option value="crypto">Crypto</option>
+                <option value="travel">Travel</option>
+                <option value="food">Food</option>
+                <option value="fashion">Fashion</option>
+                <option value="beauty">Beauty</option>
+                <option value="gaming">Gaming</option>
               </select>
               
               <button

@@ -482,7 +482,15 @@ export class ContentVariationGenerator {
       fitness: ['workout', 'gains', 'transformation', 'strength', 'healthy', 'fitness journey'],
       lifestyle: ['balance', 'wellness', 'self-care', 'mindfulness', 'positive vibes', 'lifestyle'],
       education: ['learn', 'knowledge', 'skill', 'development', 'growth', 'education'],
-      motivation: ['mindset', 'goals', 'success', 'achievement', 'motivation', 'inspiration']
+      motivation: ['mindset', 'goals', 'success', 'achievement', 'motivation', 'inspiration'],
+      tech: ['innovation', 'app', 'software', 'algorithm', 'digital', 'automation', 'AI'],
+      finance: ['invest', 'trading', 'portfolio', 'dividend', 'stocks', 'financial'],
+      crypto: ['blockchain', 'bitcoin', 'nft', 'token', 'wallet', 'mining'],
+      travel: ['destination', 'adventure', 'vacation', 'journey', 'explore', 'wanderlust'],
+      food: ['recipe', 'cuisine', 'chef', 'cooking', 'flavor', 'delicious'],
+      fashion: ['style', 'trend', 'outfit', 'aesthetic', 'wardrobe', 'design'],
+      beauty: ['routine', 'glow', 'skincare', 'makeup', 'wellness', 'selfcare'],
+      gaming: ['play', 'gameplay', 'stream', 'esports', 'rank', 'grind']
     };
     
     const terms = nicheTerms[targetNiche as keyof typeof nicheTerms] || nicheTerms.business;
@@ -496,7 +504,15 @@ export class ContentVariationGenerator {
       fitness: 'On your fitness journey, ',
       lifestyle: 'For a balanced life, ',
       education: 'When learning new skills, ',
-      motivation: 'To achieve your goals, '
+      motivation: 'To achieve your goals, ',
+      tech: 'In the tech world, ',
+      finance: 'For financial success, ',
+      crypto: 'In crypto trading, ',
+      travel: 'On your travels, ',
+      food: 'In the kitchen, ',
+      fashion: 'For your style, ',
+      beauty: 'For your glow, ',
+      gaming: 'When gaming, '
     };
     
     const intro = nicheIntros[targetNiche as keyof typeof nicheIntros];

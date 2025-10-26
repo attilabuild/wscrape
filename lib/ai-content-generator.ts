@@ -170,7 +170,15 @@ export class AIContentGenerator {
     motivation: ['#motivation', '#mindset', '#success', '#inspiration', '#goals', '#hustle', '#grind', '#winning'],
     fitness: ['#fitness', '#workout', '#gym', '#health', '#transformation', '#fit', '#strong', '#muscle'],
     lifestyle: ['#lifestyle', '#life', '#happiness', '#positivity', '#vibes', '#daily', '#mood', '#energy'],
-    education: ['#learn', '#education', '#knowledge', '#skills', '#growth', '#development', '#tips', '#tutorial']
+    education: ['#learn', '#education', '#knowledge', '#skills', '#growth', '#development', '#tips', '#tutorial'],
+    tech: ['#tech', '#technology', '#innovation', '#ai', '#startup', '#coding', '#productivity', '#future'],
+    finance: ['#finance', '#money', '#investing', '#wealth', '#financialfreedom', '#savings', '#trading', '#budgeting'],
+    crypto: ['#crypto', '#bitcoin', '#blockchain', '#nft', '#defi', '#ethereum', '#web3', '#investing'],
+    travel: ['#travel', '#wanderlust', '#adventure', '#explore', '#vacation', '#destination', '#nature', '#trip'],
+    food: ['#food', '#recipe', '#cooking', '#chef', '#delicious', '#foodie', '#homemade', '#yummy'],
+    fashion: ['#fashion', '#style', '#outfit', '#ootd', '#trends', '#aesthetic', '#design', '#wardrobe'],
+    beauty: ['#beauty', '#makeup', '#skincare', '#glow', '#selfcare', '#routine', '#tips', '#healthy'],
+    gaming: ['#gaming', '#gamer', '#streaming', '#esports', '#play', '#game', '#twitch', '#youtube']
   };
 
   constructor(viralPosts: ViralPost[] = []) {
