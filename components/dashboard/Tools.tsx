@@ -239,34 +239,54 @@ export default function Tools({
                 emptyStateDescription={`No recent videos found for @${lastScrapedUser} on ${selectedPlatform}. Try a different handle or switch platform.`}
                 onSaveContent={async (content) => {
                   try {
-                    const { data: { user } } = await (await import('@/lib/supabase')).supabase.auth.getUser();
+                    const { data: { user }, error: authError } = await (await import('@/lib/supabase')).supabase.auth.getUser();
                     if (!user) {
                       alert('Please log in to save content');
                       return;
                     }
 
-                    const { error } = await (await import('@/lib/supabase')).supabase
-                      .from('contents')
-                      .insert({
-                        user_id: user.id,
-                        username: content.username || lastScrapedUser,
-                        caption: content.caption || content.fullContent,
-                        hook: content.hook,
-                        transcript: content.transcript,
-                        views: content.views || 0,
-                        likes: content.likes || 0,
-                        engagement_rate: content.engagementRate || 0,
-                        content_type: content.contentType || selectedPlatform,
-                        post_url: content.postUrl,
-                        viral_score: content.viralScore || 0,
-                        hashtags: content.hashtags || [],
-                        platform: selectedPlatform
-                      });
+                    // Get the auth token
+                    const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+                    const token = session?.access_token;
 
-                    if (error) throw error;
-                    alert('Content saved successfully!');
-                  } catch (error) {
-                    alert('Failed to save content');
+                    if (!token) {
+                      alert('Please log in to save content');
+                      return;
+                    }
+
+                    // Use the content API endpoint with auth
+                    const response = await fetch('/api/content', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        action: 'add',
+                        payload: {
+                          hook: content.hook,
+                          caption: content.caption || content.fullContent,
+                          transcript: content.transcript || content.caption || content.hook,
+                          username: content.username || lastScrapedUser,
+                          contentType: content.contentType || selectedPlatform,
+                          views: content.views || 0,
+                          likes: content.likes || 0,
+                          engagementRate: content.engagementRate || 0,
+                          postUrl: content.postUrl,
+                          hashtags: content.hashtags || []
+                        }
+                      })
+                    });
+
+                    if (!response.ok) {
+                      const errorData = await response.json();
+                      throw new Error(errorData.error || 'Failed to save content');
+                    }
+                    
+                    alert('✅ Content saved to library! Go to Contents tab to view it.');
+                  } catch (error: any) {
+                    console.error('Save content error:', error);
+                    alert('❌ Failed to save content: ' + error.message);
                   }
                 }}
               />
