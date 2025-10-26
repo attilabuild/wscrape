@@ -10,12 +10,22 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
  * This uses the service role key to bypass RLS (use with caution)
  */
 export function createServerSupabaseClient() {
-  return createClient(supabaseUrl, supabaseServiceKey, {
+  console.log('Creating server client with service role key');
+  
+  if (!supabaseServiceKey) {
+    console.error('SUPABASE_SERVICE_ROLE_KEY is not set in environment variables');
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
+  }
+  
+  const client = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     }
   });
+  
+  console.log('Service client created successfully');
+  return client;
 }
 
 /**
