@@ -198,6 +198,24 @@ export default function Contents({
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       
+      // Detect niche from saved content (look for common tech/business keywords)
+      const detectedNiche = (() => {
+        const contentText = dbContent.map(c => `${c.hook} ${c.caption}`).join(' ').toLowerCase();
+        if (contentText.includes('apple') || contentText.includes('tech') || contentText.includes('iphone')) {
+          return 'tech';
+        }
+        if (contentText.includes('business') || contentText.includes('entrepreneur')) {
+          return 'business';
+        }
+        if (contentText.includes('fitness') || contentText.includes('workout')) {
+          return 'fitness';
+        }
+        if (contentText.includes('motivation')) {
+          return 'motivation';
+        }
+        return 'business'; // fallback
+      })();
+
       const response = await fetch('/api/ai-analysis', {
         method: 'POST',
         headers: { 
@@ -207,7 +225,7 @@ export default function Contents({
         body: JSON.stringify({
           action: 'generate_suggestions',
           payload: {
-            niche: 'business',
+            niche: detectedNiche,
             targetAudience: 'general audience',
             contentStyle: 'viral and engaging',
             competitorData: dbContent.map(content => ({
