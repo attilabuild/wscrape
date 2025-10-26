@@ -233,7 +233,8 @@ export default function Dashboard() {
         savedContentContext = data || [];
       }
 
-      const response = await fetch('/api/ai-analysis', {
+      // Use authenticatedFetch to include Authorization header
+      const response = await authenticatedFetch('/api/ai-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -262,7 +263,7 @@ export default function Dashboard() {
     setGeneratingScript(contentId);
     
     try {
-      const response = await fetch('/api/ai-analysis', {
+      const response = await authenticatedFetch('/api/ai-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
