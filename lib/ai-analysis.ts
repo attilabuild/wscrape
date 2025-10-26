@@ -619,40 +619,65 @@ Respond ONLY with valid JSON, no additional text.`
 
   // PRIVATE HELPER METHODS
 
+  private extractTheme(text: string): string {
+    const lower = text.toLowerCase();
+    if (lower.includes('apple')) return 'Apple/Tech';
+    if (lower.includes('fitness') || lower.includes('workout')) return 'Fitness';
+    if (lower.includes('business') || lower.includes('entrepreneur')) return 'Business';
+    if (lower.includes('motivation')) return 'Motivation';
+    if (lower.includes('tech')) return 'Tech';
+    if (lower.includes('finance')) return 'Finance';
+    return 'General';
+  }
+
   private buildAnalysisPrompt(videos: VideoData[], username: string, niche: string): string {
     const videoSummary = videos.slice(0, 10).map((video, idx) => `
-Video ${idx + 1}:
+Content ${idx + 1}:
 - Hook: "${video.hook}"
-- Caption: "${video.caption.substring(0, 200)}..."
-- Views: ${video.views.toLocaleString()}
-- Likes: ${video.likes.toLocaleString()}
-- Engagement Rate: ${video.engagementRate || 'Unknown'}%
-- Upload Date: ${video.uploadDate}
+- Full Content: "${video.transcript || video.caption.substring(0, 300)}..."
+- Hashtags: ${Array.isArray(video.hashtags) ? video.hashtags.join(', ') : video.hashtags || 'None'}
+- Theme/Topic: ${this.extractTheme(video.hook + ' ' + video.caption)}
 `).join('\n');
 
     return `
-Analyze this social media creator's content performance with SPECIFIC, ACTIONABLE insights. Be brutally honest about what's working and what's not.
+Analyze this creator's content library with DEEP, ACTIONABLE insights. Analyze the actual content, hooks, themes, and patterns.
 
 CREATOR: @${username}
 NICHE: ${niche}
-ANALYZED VIDEOS: ${videos.length}
+CONTENT PIECES ANALYZED: ${videos.length}
 
-CONTENT SAMPLE:
+ACTUAL CONTENT FROM THEIR LIBRARY:
 ${videoSummary}
 
-AGGREGATE STATS:
-- Total Views: ${videos.reduce((sum, v) => sum + v.views, 0).toLocaleString()}
-- Total Likes: ${videos.reduce((sum, v) => sum + v.likes, 0).toLocaleString()}
-- Average Views: ${Math.round(videos.reduce((sum, v) => sum + v.views, 0) / videos.length).toLocaleString()}
-- Average Likes: ${Math.round(videos.reduce((sum, v) => sum + v.likes, 0) / videos.length).toLocaleString()}
-
 ANALYSIS REQUIREMENTS:
-- Be SPECIFIC about what's good and what's bad
-- Provide CONCRETE examples from their content
-- Give ACTIONABLE advice they can implement immediately
-- Identify EXACT problems and solutions
-- Compare their performance to industry benchmarks
-- Highlight specific content pieces that are underperforming/overperforming
+1. HOOK ANALYSIS:
+   - Analyze if the hooks actually align with the full content
+   - Check if hooks are strong enough to stop scrolling
+   - Identify hook patterns that work vs. don't work
+   - Look for hook-theme consistency
+
+2. CONTENT QUALITY:
+   - Analyze the actual themes and topics they're covering
+   - Check if content depth matches hook promises
+   - Identify content patterns (educational, entertainment, etc.)
+   - Find gaps in their content strategy
+
+3. THEME CONSISTENCY:
+   - Check if their hooks match their content themes
+   - Identify if they're staying on-topic or branching out too much
+   - See if their niche focus is consistent
+   - Determine if content aligns with their target audience
+
+4. ENGAGEMENT TACTICS:
+   - Analyze engagement triggers in their hooks
+   - Check for CTA presence in content
+   - Identify question patterns
+   - Look for emotion triggers
+
+5. HASHTAG STRATEGY:
+   - Check if hashtags match content themes
+   - Analyze hashtag effectiveness
+   - Identify opportunities for better hashtag targeting
 
 Provide your analysis in this EXACT JSON structure (NO markdown, NO code blocks, just pure JSON):
 {
