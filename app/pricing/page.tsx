@@ -14,9 +14,23 @@ export default function PricingPage() {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsLoggedIn(!!session);
+      
+      // If user is logged in, check if they have premium access
+      if (session?.user) {
+        const { data: subscription } = await supabase
+          .from('user_subscriptions')
+          .select('premium_access, stripe_status')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        // If user has premium access, redirect to dashboard
+        if (subscription?.premium_access === true || subscription?.stripe_status === 'active') {
+          router.push('/dashboard');
+        }
+      }
     };
     checkAuth();
-  }, []);
+  }, [router]);
 
   const handleSubscribe = async () => {
     // Check if user is logged in
