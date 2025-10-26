@@ -170,9 +170,8 @@ export default function Dashboard() {
         setShowResults(true);
         setProgress(100);
         
-        setTimeout(() => {
-          runAIAnalysis();
-        }, 500);
+        // AI analysis is now manual - user clicks the "Analyze" button
+        // Removed automatic analysis to speed up scraping
       } else {
         throw new Error(result.error || 'Unknown error');
       }
