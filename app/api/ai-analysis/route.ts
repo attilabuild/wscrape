@@ -3,6 +3,9 @@ import { AIAnalysisEngine } from '@/lib/ai-analysis';
 import { createSupabaseFromRequest } from '@/lib/supabase-server';
 import { requireActiveSubscription } from '@/lib/subscription-guard';
 
+export const maxDuration = 60; // 60 seconds max for Vercel Pro
+export const runtime = 'nodejs';
+
 interface VideoData {
   id: string;
   caption: string;

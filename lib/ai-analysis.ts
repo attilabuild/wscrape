@@ -113,7 +113,7 @@ Respond ONLY with valid JSON in the exact format specified, with no additional t
               content: analysisPrompt
             }
           ],
-          max_tokens: 1500,
+          max_tokens: 800,
           temperature: 0.7
         })
       });
@@ -220,7 +220,7 @@ Respond ONLY with valid JSON array of content suggestions, no additional text.`
               content: suggestionPrompt
             }
           ],
-          max_tokens: 1200,
+          max_tokens: 600,
           temperature: 0.8
         })
       });
@@ -299,7 +299,7 @@ Respond ONLY with valid JSON, no additional text.`
               content: competitorPrompt
             }
           ],
-          max_tokens: 2500,
+          max_tokens: 1000,
           temperature: 0.6
         })
       });
@@ -435,7 +435,7 @@ CRITICAL: Respond ONLY with valid JSON. Do not include any markdown formatting, 
               content: optimizationPrompt
             }
           ],
-          max_tokens: 1000,
+          max_tokens: 500,
           temperature: 0.7
         })
       });
@@ -584,7 +584,7 @@ Respond ONLY with valid JSON, no additional text.`
               content: hashtagPrompt
             }
           ],
-          max_tokens: 800,
+          max_tokens: 400,
           temperature: 0.6
         })
       });
