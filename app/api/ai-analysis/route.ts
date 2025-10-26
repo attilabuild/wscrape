@@ -28,9 +28,23 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 export async function POST(request: NextRequest) {
   try {
-    // 🔒 SECURITY: Verify user authentication
+    // 🔒 SECURITY: Verify user authentication - Use service role client to bypass RLS
     const supabase = await createSupabaseFromRequest(request);
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    // Get auth header from request
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    if (!token) {
+      console.log('AI Analysis: No token in Authorization header');
+      return NextResponse.json(
+        { error: 'Unauthorized - Please login' },
+        { status: 401 }
+      );
+    }
+    
+    // Get user from the token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
       console.log('AI Analysis auth failed:', { error: authError, hasUser: !!user });
