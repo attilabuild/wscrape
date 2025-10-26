@@ -731,7 +731,7 @@ Respond with JSON array of exactly 5 suggestions in this format:
 [
   {
     "hook": "compelling hook text",
-    "fullContent": "complete content script/caption with timestamps for each section (e.g., '0-3s: Hook. 3-8s: Set up. 8-20s: Main content. 20-30s: CTA and engagement ask.')",
+    "fullContent": "Create a 30-second video script with newline breaks between each timestamped section:\n\n0-3s: [Hook - gripping opening]\n3-8s: [Set up - context/background]\n8-20s: [Main content - core message/value]\n20-30s: [CTA and engagement ask]\n\n[End with hashtags on separate lines]",
     "hashtags": ["array of 8-12 strategic hashtags"],
     "postingStrategy": "when and how to post for maximum impact",
     "expectedEngagement": number (estimated viral engagement rate 69-95 - aim for high percentages),
