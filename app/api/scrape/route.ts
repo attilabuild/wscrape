@@ -41,7 +41,21 @@ export async function POST(request: NextRequest) {
   try {
     // 🔒 SECURITY: Verify user authentication
     const supabase = await createSupabaseFromRequest(request);
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    // Get auth header from request
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    if (!token) {
+      console.log('Scrape: No token in Authorization header');
+      return NextResponse.json(
+        { error: 'Unauthorized - Please login' },
+        { status: 401 }
+      );
+    }
+    
+    // Get user from the token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
       return NextResponse.json(
