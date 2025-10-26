@@ -21,13 +21,18 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!subscription?.stripe_customer_id) {
-      return NextResponse.json({ error: 'No subscription found' }, { status: 404 });
+      // If no Stripe customer ID, create one or return error
+      // For users with premium_access (granted without payment), 
+      // they shouldn't need to manage billing
+      return NextResponse.json({ 
+        error: 'You don\'t have a Stripe subscription. Contact support for billing assistance.' 
+      }, { status: 400 });
     }
 
     // Create portal session
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing`,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`,
     });
 
     return NextResponse.json({ url: portalSession.url });

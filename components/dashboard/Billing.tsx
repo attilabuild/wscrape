@@ -8,6 +8,8 @@ interface SubscriptionData {
   current_period_start: string;
   current_period_end: string;
   cancel_at_period_end: boolean;
+  stripe_customer_id?: string;
+  premium_access?: boolean;
 }
 
 export default function Billing() {
@@ -26,7 +28,7 @@ export default function Billing() {
 
       const { data } = await supabase
         .from('user_subscriptions')
-        .select('stripe_status, current_period_start, current_period_end, cancel_at_period_end')
+        .select('stripe_status, current_period_start, current_period_end, cancel_at_period_end, stripe_customer_id, premium_access')
         .eq('user_id', user.id)
         .single();
 
@@ -122,7 +124,11 @@ export default function Billing() {
         {subscription && (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-white/10">
             <div className="space-y-1">
-              {subscription.cancel_at_period_end ? (
+              {subscription.premium_access ? (
+                <div className="text-sm text-green-400">
+                  ✅ Premium Access - Lifetime
+                </div>
+              ) : subscription.cancel_at_period_end ? (
                 <div className="text-sm text-yellow-400">
                   ⚠️ Your subscription will end on {formatDate(subscription.current_period_end)}
                 </div>
@@ -135,13 +141,15 @@ export default function Billing() {
                 Current period: {formatDate(subscription.current_period_start)} - {formatDate(subscription.current_period_end)}
               </div>
             </div>
-            <button
-              onClick={handleManageBilling}
-              disabled={managingBilling}
-              className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 font-medium whitespace-nowrap"
-            >
-              {managingBilling ? 'Loading...' : 'Manage Subscription'}
-            </button>
+            {subscription.stripe_customer_id && (
+              <button
+                onClick={handleManageBilling}
+                disabled={managingBilling}
+                className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 font-medium whitespace-nowrap"
+              >
+                {managingBilling ? 'Loading...' : 'Manage Subscription'}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -208,19 +216,21 @@ export default function Billing() {
       </div>
 
       {/* Billing Info */}
-      <div className="border border-white/10 rounded-lg p-8">
-        <h3 className="text-xl font-bold text-white mb-4">Billing Management</h3>
-        <p className="text-gray-400 mb-6">
-          Manage your payment methods, view invoices, and update billing information through the Stripe Customer Portal.
-        </p>
-        <button
-          onClick={handleManageBilling}
-          disabled={managingBilling}
-          className="px-6 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
-        >
-          {managingBilling ? 'Loading...' : 'Open Billing Portal'}
-        </button>
-      </div>
+      {subscription?.stripe_customer_id && (
+        <div className="border border-white/10 rounded-lg p-8">
+          <h3 className="text-xl font-bold text-white mb-4">Billing Management</h3>
+          <p className="text-gray-400 mb-6">
+            Manage your payment methods, view invoices, and update billing information through the Stripe Customer Portal.
+          </p>
+          <button
+            onClick={handleManageBilling}
+            disabled={managingBilling}
+            className="px-6 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
+          >
+            {managingBilling ? 'Loading...' : 'Open Billing Portal'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
