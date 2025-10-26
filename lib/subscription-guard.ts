@@ -17,8 +17,10 @@ export interface SubscriptionStatus {
  */
 export async function verifyActiveSubscription(userId: string): Promise<SubscriptionStatus> {
   try {
-    // Create server-side Supabase client
+    // Create server-side Supabase client WITH SERVICE ROLE KEY (bypasses RLS)
     const supabase = createServerSupabaseClient();
+    
+    console.log('Checking subscription for user:', userId);
     
     // Query subscription from database
     const { data: subscription, error } = await supabase
@@ -27,14 +29,26 @@ export async function verifyActiveSubscription(userId: string): Promise<Subscrip
       .eq('user_id', userId)
       .single();
 
-    if (error || !subscription) {
-      console.log('Subscription check failed:', { error, hasSubscription: !!subscription });
+    console.log('Subscription query result:', { subscription, error });
+
+    if (error) {
+      console.log('Subscription query error:', error);
+      // If error is because no row exists, that's OK
+      if (!error.message?.includes('No rows')) {
+        return { isActive: false };
+      }
+    }
+
+    if (!subscription) {
+      console.log('No subscription found for user');
       return { isActive: false };
     }
 
+    console.log('Raw subscription data:', JSON.stringify(subscription));
+
     // Check if user has manual premium access (granted without subscription)
-    if (subscription.premium_access === true) {
-      console.log('User has premium_access:', subscription);
+    if (subscription.premium_access === true || subscription.premium_access === 'true') {
+      console.log('User has premium_access enabled');
       return {
         isActive: true,
         status: 'premium',
