@@ -173,7 +173,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(analysisData);
   } catch (error) {
-    console.error('Video analysis error:', error);
     return NextResponse.json({ error: 'Failed to analyze video' }, { status: 500 });
   }
 }

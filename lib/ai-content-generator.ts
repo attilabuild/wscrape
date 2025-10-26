@@ -182,7 +182,6 @@ export class AIContentGenerator {
    * Generate content based on request
    */
   generateContent(request: ContentRequest): GeneratedContent[] {
-    console.log(`🤖 Generating AI content for ${request.niche} (${request.tone}, ${request.length})`);
     
     const templates = this.selectBestTemplates(request);
     const generatedContent: GeneratedContent[] = [];
@@ -285,7 +284,6 @@ export class AIContentGenerator {
    * Train on new viral data
    */
   trainOnViralData(newPosts: ViralPost[]): void {
-    console.log(`🧠 Training AI on ${newPosts.length} new viral posts...`);
     
     this.viralPosts.push(...newPosts);
     
@@ -298,7 +296,6 @@ export class AIContentGenerator {
       .sort((a, b) => b.avgEngagement - a.avgEngagement)
       .slice(0, 20);
     
-    console.log(`✅ AI trained on ${this.viralPosts.length} total viral posts`);
   }
 
   // PRIVATE METHODS

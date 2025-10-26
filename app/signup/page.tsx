@@ -17,7 +17,7 @@ export default function SignupPage() {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Check if user has subscription, if not redirect to pricing
+        // User is logged in, redirect based on subscription status
         const { data: subscription } = await supabase
           .from('user_subscriptions')
           .select('stripe_status, current_period_end')
@@ -34,6 +34,7 @@ export default function SignupPage() {
           router.push('/pricing');
         }
       }
+      // If no session, stay on signup page
     };
     checkAuth();
   }, [router]);
@@ -50,13 +51,23 @@ export default function SignupPage() {
       return;
     }
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Enhanced email validation - more permissive and robust
+    const trimmedEmail = email.trim().toLowerCase();
+    
+    // Basic validation only - let Supabase handle the rest
+    if (!trimmedEmail) {
+      setError('Please enter an email address');
+      setLoading(false);
+      return;
+    }
+    
+    // Very basic email format check
+    if (!trimmedEmail.includes('@') || !trimmedEmail.includes('.')) {
       setError('Please enter a valid email address (e.g., user@example.com)');
       setLoading(false);
       return;
     }
+    
 
     // Password length check
     if (password.length < 6) {
@@ -66,7 +77,7 @@ export default function SignupPage() {
     }
     
     const { error } = await supabase.auth.signUp({ 
-      email, 
+      email: trimmedEmail, 
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/pricing`,
@@ -74,7 +85,16 @@ export default function SignupPage() {
     });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      // Provide more specific error messages
+      if (error.message.includes('invalid email')) {
+        setError('Please enter a valid email address');
+      } else if (error.message.includes('already registered')) {
+        setError('This email is already registered. Please sign in instead.');
+      } else if (error.message.includes('password')) {
+        setError('Password must be at least 6 characters long');
+      } else {
+        setError(error.message);
+      }
       return;
     }
     setMessage('Account created! Please subscribe to access the dashboard...');
@@ -185,11 +205,8 @@ export default function SignupPage() {
           <p className="mt-4 text-center text-xs text-gray-400">
             Already have an account? <a href="/login" className="text-white underline">Sign in</a>
           </p>
-          </div>
         </div>
       </div>
     </div>
   );
 }
-
-

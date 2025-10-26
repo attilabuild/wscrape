@@ -76,7 +76,6 @@ If asked about non-content topics, politely redirect to content-related question
       response: response
     });
   } catch (error: any) {
-    console.error('AI Assistant error:', error);
     
     // Provide fallback on error
     return NextResponse.json({

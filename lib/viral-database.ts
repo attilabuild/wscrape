@@ -69,9 +69,7 @@ export class ViralDatabase {
       
       // Try to load existing database
       await this.loadDatabase();
-      console.log(`📊 Viral Database loaded: ${this.posts.length} posts`);
     } catch (error) {
-      console.log('📝 Creating new viral database...');
       this.posts = [];
       this.stats = this.calculateStats();
       await this.saveDatabase();
@@ -82,13 +80,11 @@ export class ViralDatabase {
    * Add viral posts to database
    */
   async addPosts(newPosts: ViralPost[]): Promise<void> {
-    console.log(`📝 Adding ${newPosts.length} new posts to viral database...`);
     
     // Filter out duplicates
     const existingIds = new Set(this.posts.map(p => p.id));
     const uniquePosts = newPosts.filter(post => !existingIds.has(post.id));
     
-    console.log(`🆕 ${uniquePosts.length} unique posts after deduplication`);
     
     // Add unique posts
     this.posts.push(...uniquePosts);
@@ -99,7 +95,6 @@ export class ViralDatabase {
     // Keep only top 10,000 posts to manage size
     if (this.posts.length > 10000) {
       this.posts = this.posts.slice(0, 10000);
-      console.log('🗃️  Trimmed database to top 10,000 viral posts');
     }
     
     // Update stats and patterns
@@ -109,7 +104,6 @@ export class ViralDatabase {
     // Save to disk
     await this.saveDatabase();
     
-    console.log(`✅ Database updated: ${this.posts.length} total posts`);
   }
 
   /**
@@ -331,7 +325,6 @@ export class ViralDatabase {
     await fs.mkdir(path.dirname(exportPath), { recursive: true });
     await fs.writeFile(exportPath, JSON.stringify(exportData, null, 2));
     
-    console.log(`📁 Database exported to: ${exportPath}`);
     return exportPath;
   }
 

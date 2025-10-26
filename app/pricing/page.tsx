@@ -1,15 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+    };
+    checkAuth();
+  }, []);
+
   const handleSubscribe = async () => {
+    // Check if user is logged in
+    if (!isLoggedIn) {
+      router.push('/signup');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -37,7 +52,6 @@ export default function PricingPage() {
         window.location.href = data.url;
       }
     } catch (err: any) {
-      console.error('Subscription error:', err);
       setError(err.message || 'Failed to start checkout');
       setLoading(false);
     }
@@ -45,10 +59,59 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
+      {/* Navigation */}
+      <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <a href="/" className="text-2xl font-bold text-white">
+                wscrape
+              </a>
+            </div>
+            <div className="flex items-center space-x-4">
+              {isLoggedIn ? (
+                <>
+                  <a 
+                    href="/dashboard"
+                    className="text-gray-300 hover:text-white transition-colors"
+                  >
+                    Dashboard
+                  </a>
+                  <button
+                    onClick={() => {
+                      supabase.auth.signOut();
+                      router.push('/');
+                    }}
+                    className="bg-white text-black px-6 py-2 rounded-full font-medium hover:bg-gray-200 transition-all"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <a 
+                    href="/login"
+                    className="text-gray-300 hover:text-white transition-colors"
+                  >
+                    Login
+                  </a>
+                  <a 
+                    href="/signup"
+                    className="bg-white text-black px-6 py-2 rounded-full font-medium hover:bg-gray-200 transition-all"
+                  >
+                    Get started
+                  </a>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Background Grid */}
       <div className="absolute inset-0 h-full w-full bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
       
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-20 pt-32">
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
@@ -157,8 +220,10 @@ export default function PricingPage() {
                   </svg>
                   Processing...
                 </span>
-              ) : (
+              ) : isLoggedIn ? (
                 'Subscribe Now'
+              ) : (
+                'Sign Up to Subscribe'
               )}
             </button>
 

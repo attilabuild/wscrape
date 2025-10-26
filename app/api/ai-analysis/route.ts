@@ -39,9 +39,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TEMPORARY: Subscription check disabled for testing
-    // TODO: Re-enable before production
-    /*
     // 🔒 SECURITY: Verify active subscription (SERVER-SIDE - CANNOT BE BYPASSED)
     const subscriptionCheck = await requireActiveSubscription(user.id);
     
@@ -51,16 +48,13 @@ export async function POST(request: NextRequest) {
         { status: subscriptionCheck.status }
       );
     }
-    */
 
     const body: AIAnalysisRequest = await request.json();
     const { action, payload } = body;
 
-    console.log(`🧠 AI Analysis API: ${action}`);
-
     // Initialize AI Analysis Engine
     if (!OPENAI_API_KEY) {
-      console.warn('🔑 OpenAI API key not found - using fallback analysis');
+      // Using fallback analysis
     }
     const aiEngine = new AIAnalysisEngine(OPENAI_API_KEY || '');
 
@@ -88,7 +82,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('AI Analysis error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to process AI analysis' },
       { status: 500 }
@@ -105,8 +98,6 @@ async function handleContentAnalysis(aiEngine: AIAnalysisEngine, payload: {
   niche: string;
 }) {
   const { videos, username, niche } = payload;
-
-  console.log(`🔍 Analyzing content for @${username} (${videos.length} videos)`);
 
   // Guard: handle empty video list gracefully
   if (!videos || videos.length === 0) {
@@ -160,10 +151,45 @@ async function handleContentAnalysis(aiEngine: AIAnalysisEngine, payload: {
   }));
 
   // Run AI analysis (with fallback if API unavailable)
-  const analysis = await aiEngine.analyzeScrapedContent(enhancedVideos, username, niche);
+  let analysis;
+  try {
+    analysis = await aiEngine.analyzeScrapedContent(enhancedVideos, username, niche);
+  } catch (error) {
+    // Use fallback analysis if AI fails
+    analysis = {
+      overallScore: 50,
+      viralPotential: 'Low' as const,
+      keyInsights: ['Analysis temporarily unavailable - using basic metrics'],
+      contentStrategy: {
+        strengths: ['Content uploaded successfully'],
+        weaknesses: ['Analysis pending'],
+        opportunities: ['Upload more content for better analysis']
+      },
+      recommendations: {
+        immediate: ['Try the analysis again'],
+        shortTerm: ['Upload more content'],
+        longTerm: ['Build content library']
+      },
+      competitorAnalysis: {
+        positioning: 'Analysis pending',
+        differentiation: ['Content uploaded'],
+        gaps: ['Analysis needed']
+      },
+      contentOptimization: {
+        hookSuggestions: ['Analysis pending'],
+        engagementTactics: ['Analysis pending'],
+        hashtagStrategy: ['Analysis pending']
+      },
+      trendAnalysis: {
+        currentTrends: ['Analysis pending'],
+        emergingOpportunities: ['Analysis pending'],
+        contentGaps: ['Analysis pending']
+      }
+    };
+  }
   
   // Check if we're using fallback analysis due to API issues
-  const isUsingFallback = !OPENAI_API_KEY || analysis.keyInsights.some(insight => 
+  const isUsingFallback = !OPENAI_API_KEY || !analysis.keyInsights || analysis.keyInsights.some(insight => 
     insight.includes('average engagement rate') && insight.includes('consistency score')
   );
 
@@ -233,30 +259,12 @@ async function handleContentSuggestions(aiEngine: AIAnalysisEngine, payload: {
     savedContent = []
   } = payload;
 
-  console.log(`💡 Generating ${count} AI content suggestions for ${niche}`);
-  
-  // Log profile usage - updated to match Supabase profiles structure
-  if (profileContext && (profileContext.name || profileContext.niche || profileContext.bio)) {
-    console.log(`👤 Using profile context for personalized generation:`, {
-      name: profileContext.name,
-      niche: profileContext.niche,
-      bio: profileContext.bio?.substring(0, 50)
-    });
-  }
-
-  // Log saved content usage
-  if (savedContent && savedContent.length > 0) {
-    console.log(`📚 Analyzing ${savedContent.length} saved content pieces for style matching`);
-  }
-
   // Use profile niche if available, otherwise use provided niche
   const effectiveNiche = profileContext?.niche || niche;
   
   // Enhanced target audience and content style based on profile
   const enhancedTargetAudience = profileContext?.targetAudience || targetAudience;
   const enhancedContentStyle = profileContext?.bio || contentStyle;
-
-  console.log(`🎯 Generating content for niche: ${effectiveNiche}, style: ${enhancedContentStyle.substring(0, 50)}`);
 
   const suggestions = await aiEngine.generateContentSuggestions(
     effectiveNiche,
@@ -302,8 +310,6 @@ async function handleContentOptimization(aiEngine: AIAnalysisEngine, payload: {
 }) {
   const { content, niche, targetMetrics, currentPerformance, profileContext } = payload;
 
-  console.log(`⚡ Optimizing content for ${niche} niche`);
-
   // Run optimization
   const optimization = await aiEngine.optimizeForViral(content, niche, targetMetrics);
 
@@ -343,8 +349,6 @@ async function handleCompetitorAnalysis(aiEngine: AIAnalysisEngine, payload: {
 }) {
   const { competitors, yourNiche, yourContent } = payload;
 
-  console.log(`🕵️ Analyzing ${competitors.length} competitors in ${yourNiche}`);
-
   // Run competitor analysis
   const competitorAnalysis = await aiEngine.analyzeCompetitorStrategy(competitors, yourNiche);
 
@@ -380,8 +384,6 @@ async function handleHashtagStrategy(aiEngine: AIAnalysisEngine, payload: {
   competitorHashtags?: string[];
 }) {
   const { content, niche, targetAudience, competitorHashtags } = payload;
-
-  console.log(`🏷️ Generating hashtag strategy for ${niche} content`);
 
   // Generate AI-powered hashtag strategy
   const strategy = await aiEngine.generateHashtagStrategy(content, niche);

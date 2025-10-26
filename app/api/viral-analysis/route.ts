@@ -25,9 +25,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TEMPORARY: Subscription check disabled for testing
-    // TODO: Re-enable before production
-    /*
     // 🔒 SECURITY: Verify active subscription (SERVER-SIDE - CANNOT BE BYPASSED)
     const subscriptionCheck = await requireActiveSubscription(user.id);
     
@@ -37,12 +34,10 @@ export async function POST(request: NextRequest) {
         { status: subscriptionCheck.status }
       );
     }
-    */
 
     const body: AnalysisRequest = await request.json();
     const { action, payload } = body;
 
-    console.log(`🚀 Viral Analysis API: ${action}`);
 
     switch (action) {
       case 'mass_analyze':
@@ -68,7 +63,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Viral analysis error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to process viral analysis' },
       { status: 500 }
@@ -97,7 +91,6 @@ async function handleMassAnalysis(payload: {
     saveToDatabase = true
   } = payload;
 
-  console.log(`🔍 Mass analyzing ${limit} creators in niches: ${niches.join(', ')}`);
 
   // If specific creators provided, analyze them
   let results;
@@ -110,7 +103,6 @@ async function handleMassAnalysis(payload: {
     };
     
     // This would be implemented to analyze specific creators
-    console.log(`Analyzing specific creators: ${creators.join(', ')}`);
   } else {
     // Analyze top creators by niche
     results = await analyzer.analyzeTopCreators(niches, limit);
@@ -119,7 +111,6 @@ async function handleMassAnalysis(payload: {
   // Save to viral database if requested
   if (saveToDatabase && results.viralPosts.length > 0) {
     await database.addPosts(results.viralPosts);
-    console.log(`💾 Saved ${results.viralPosts.length} viral posts to database`);
   }
 
   return NextResponse.json({
@@ -171,7 +162,6 @@ async function handleContentGeneration(payload: {
     calendarDays = 30
   } = payload;
 
-  console.log(`🤖 Generating ${count} pieces of ${niche} content (${tone}, ${length})`);
 
   const contentRequest = {
     niche,
@@ -186,7 +176,6 @@ async function handleContentGeneration(payload: {
 
   let calendar = null;
   if (generateCalendar) {
-    console.log(`📅 Generating ${calendarDays}-day content calendar`);
     calendar = generator.generateContentCalendar(niche, calendarDays);
   }
 
@@ -232,20 +221,17 @@ async function handleViralPrediction(payload: {
     analyzeCompetitors = []
   } = payload;
 
-  console.log(`🔮 Predicting viral potential for ${contentType} content`);
 
   const scheduledDate = scheduledTime ? new Date(scheduledTime) : undefined;
   const prediction = predictor.predictViral(content, contentType, scheduledDate, creatorFollowers);
 
   let optimalTiming = null;
   if (findOptimalTime) {
-    console.log(`⏰ Finding optimal posting time`);
     optimalTiming = predictor.findOptimalPostingTime(content, contentType);
   }
 
   let competitorAnalysis = null;
   if (analyzeCompetitors.length > 0) {
-    console.log(`🕵️ Analyzing ${analyzeCompetitors.length} competitors`);
     competitorAnalysis = predictor.analyzeCompetitorPatterns(analyzeCompetitors);
   }
 
@@ -292,7 +278,6 @@ async function handleContentVariations(payload: {
     useViralFormulas = false
   } = payload;
 
-  console.log(`🎨 Generating ${count} content variations`);
 
   const variationRequest = {
     originalContent,
@@ -307,19 +292,16 @@ async function handleContentVariations(payload: {
 
   let nicheAdaptations = null;
   if (adaptToNiches.length > 0) {
-    console.log(`🎯 Adapting to ${adaptToNiches.length} niches`);
     nicheAdaptations = variationGenerator.adaptToNiches(originalContent, adaptToNiches);
   }
 
   let abTests = null;
   if (generateABTests) {
-    console.log(`🧪 Generating A/B test variations`);
     abTests = variationGenerator.generateABTestVariations(originalContent);
   }
 
   let viralFormulas = null;
   if (useViralFormulas) {
-    console.log(`🧬 Applying viral formulas`);
     viralFormulas = variationGenerator.applyViralFormulas(originalContent);
   }
 
@@ -357,7 +339,6 @@ async function handleGetInsights(payload: {
 
   const { type, niche = 'business', timeframe = 'month', limit = 10 } = payload;
 
-  console.log(`📊 Getting ${type} insights for ${niche}`);
 
   switch (type) {
     case 'database_stats':

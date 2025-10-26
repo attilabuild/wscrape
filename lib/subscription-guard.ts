@@ -47,7 +47,6 @@ export async function verifyActiveSubscription(userId: string): Promise<Subscrip
       periodEnd: subscription.current_period_end,
     };
   } catch (error) {
-    console.error('Subscription verification error:', error);
     return { isActive: false };
   }
 }

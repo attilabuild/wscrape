@@ -1,5 +1,6 @@
 import React from 'react';
 
+
 interface ContentData {
   id: string;
   username?: string;
@@ -159,27 +160,33 @@ function ContentDetailModal({
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Metrics (only for real content) */}
-          {!isGeneratedContent && content.views && (
-            <div className="grid grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-white/5 rounded-lg">
-                <div className="text-xl font-bold text-white">{formatNumber(content.views)}</div>
-                <div className="text-sm text-gray-400">Views</div>
+          {/* Metrics */}
+          <div className="grid grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-white/5 rounded-lg">
+              <div className="text-xl font-bold text-white">
+                {content.views && content.views > 0 ? formatNumber(content.views) : '?'}
               </div>
-              <div className="text-center p-4 bg-white/5 rounded-lg">
-                <div className="text-xl font-bold text-white">{formatNumber(content.likes || 0)}</div>
-                <div className="text-sm text-gray-400">Likes</div>
-              </div>
-              <div className="text-center p-4 bg-white/5 rounded-lg">
-                <div className="text-xl font-bold text-white">{formatNumber(content.comments || 0)}</div>
-                <div className="text-sm text-gray-400">Comments</div>
-              </div>
-              <div className="text-center p-4 bg-white/5 rounded-lg">
-                <div className="text-xl font-bold text-white">{content.engagementRate?.toFixed(1) || '0.0'}%</div>
-                <div className="text-sm text-gray-400">Engagement</div>
-              </div>
+              <div className="text-sm text-gray-400">Views</div>
             </div>
-          )}
+            <div className="text-center p-4 bg-white/5 rounded-lg">
+              <div className="text-xl font-bold text-white">
+                {content.likes && content.likes > 0 ? formatNumber(content.likes) : '?'}
+              </div>
+              <div className="text-sm text-gray-400">Likes</div>
+            </div>
+            <div className="text-center p-4 bg-white/5 rounded-lg">
+              <div className="text-xl font-bold text-white">
+                {content.comments && content.comments > 0 ? formatNumber(content.comments) : '?'}
+              </div>
+              <div className="text-sm text-gray-400">Comments</div>
+            </div>
+            <div className="text-center p-4 bg-white/5 rounded-lg">
+              <div className="text-xl font-bold text-white">
+                {content.engagementRate && content.engagementRate > 0 ? `${content.engagementRate.toFixed(1)}%` : '?'}
+              </div>
+              <div className="text-sm text-gray-400">Engagement</div>
+            </div>
+          </div>
 
           {/* Hook */}
           <div className="border border-white/10 rounded-lg p-4">
@@ -394,12 +401,14 @@ export default function ContentGrid({
                     {item.hook}
                   </h3>
                 </div>
-                <div className="text-center ml-4">
-                  <div className="text-lg font-bold text-white">{displayViralScore}</div>
-                  <div className="text-xs text-gray-400">
-                    {isGeneratedContent ? 'Viral Chance' : 'Preview Score'}
+                {displayViralScore > 0 && (
+                  <div className="text-center ml-4">
+                    <div className="text-lg font-bold text-white">{displayViralScore}</div>
+                    <div className="text-xs text-gray-400">
+                      {isGeneratedContent ? 'Viral Chance' : 'Preview Score'}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Content Preview */}
@@ -443,23 +452,27 @@ export default function ContentGrid({
                 </a>
               )}
 
-              {/* Metrics (only for real content) */}
-              {!isGeneratedContent && item.views && (
-                <div className="grid grid-cols-3 gap-2 mb-4 text-center">
-                  <div>
-                    <div className="text-sm font-medium text-white">{formatNumber(item.views)}</div>
-                    <div className="text-xs text-gray-400">Views</div>
+              {/* Metrics */}
+              <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+                <div>
+                  <div className="text-sm font-medium text-white">
+                    {item.views && item.views > 0 ? formatNumber(item.views) : '?'}
                   </div>
-                  <div>
-                    <div className="text-sm font-medium text-white">{formatNumber(item.likes || 0)}</div>
-                    <div className="text-xs text-gray-400">Likes</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-white">{item.engagementRate?.toFixed(1) || '0.0'}%</div>
-                    <div className="text-xs text-gray-400">Engagement</div>
-                  </div>
+                  <div className="text-xs text-gray-400">Views</div>
                 </div>
-              )}
+                <div>
+                  <div className="text-sm font-medium text-white">
+                    {item.likes && item.likes > 0 ? formatNumber(item.likes) : '?'}
+                  </div>
+                  <div className="text-xs text-gray-400">Likes</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white">
+                    {item.engagementRate && item.engagementRate > 0 ? `${item.engagementRate.toFixed(1)}%` : '?'}
+                  </div>
+                  <div className="text-xs text-gray-400">Engagement</div>
+                </div>
+              </div>
 
               {/* Reasoning (for generated content) */}
               {isGeneratedContent && item.reasoning && (
@@ -467,6 +480,7 @@ export default function ContentGrid({
                   💡 {item.reasoning}
                 </div>
               )}
+              
 
               {/* Actions */}
               <div className={`grid gap-2 ${

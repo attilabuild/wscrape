@@ -12,17 +12,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Starting comment scrape for ${platform} post: ${postUrl}`);
 
     const scraper = new ApifyScraper({
       platform,
       username: '', // Not needed for comment scraping
-      count: count || 50
+      count: Math.max(count || 100, 100) // Ensure at least 100 comments
     });
 
     const comments = await scraper.scrapeComments(postUrl);
 
-    console.log(`Successfully scraped ${comments.length} comments`);
 
     return NextResponse.json({
       success: true,
@@ -32,7 +30,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Comment scraping API error:', error);
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Failed to scrape comments',

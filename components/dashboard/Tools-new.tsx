@@ -428,7 +428,7 @@ export default function Tools({
                     <div className="text-sm text-gray-400">Expected Engagement</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white">{formatNumber(viralPrediction.prediction?.expectedViews || 0)}</div>
+                    <div className="text-2xl font-bold text-white">{viralPrediction.prediction?.expectedViews && viralPrediction.prediction.expectedViews > 0 ? formatNumber(viralPrediction.prediction.expectedViews) : '?'}</div>
                     <div className="text-sm text-gray-400">Expected Views</div>
                   </div>
                   <div className="text-center">

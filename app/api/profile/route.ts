@@ -64,7 +64,6 @@ export async function POST(request: NextRequest) {
     const body: ProfileRequest = await request.json();
     const { action, profileData } = body;
 
-    console.log(`👤 Profile API: ${action}`);
 
     switch (action) {
       case 'get':
@@ -87,7 +86,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Profile API error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to process profile request' },
       { status: 500 }
@@ -109,21 +107,18 @@ async function handleGetProfile() {
       const profileData = await fs.readFile(PROFILE_FILE_PATH, 'utf-8');
       const profile: UserProfile = JSON.parse(profileData);
       
-      console.log('📋 Profile loaded successfully');
       return NextResponse.json({
         success: true,
         data: profile
       });
     } catch (fileError) {
       // Profile doesn't exist, return default profile
-      console.log('📋 No existing profile found, returning default');
       return NextResponse.json({
         success: true,
         data: getDefaultProfile()
       });
     }
   } catch (error) {
-    console.error('Failed to get profile:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve profile' },
       { status: 500 }
@@ -157,14 +152,12 @@ async function handleSaveProfile(profileData: Partial<UserProfile> | undefined) 
 
     await fs.writeFile(PROFILE_FILE_PATH, JSON.stringify(fullProfile, null, 2));
     
-    console.log('💾 Profile saved successfully');
     return NextResponse.json({
       success: true,
       data: fullProfile,
       message: 'Profile saved successfully'
     });
   } catch (error) {
-    console.error('Failed to save profile:', error);
     return NextResponse.json(
       { error: 'Failed to save profile' },
       { status: 500 }
@@ -209,14 +202,12 @@ async function handleUpdateProfile(profileData: Partial<UserProfile> | undefined
 
     await fs.writeFile(PROFILE_FILE_PATH, JSON.stringify(updatedProfile, null, 2));
     
-    console.log('🔄 Profile updated successfully');
     return NextResponse.json({
       success: true,
       data: updatedProfile,
       message: 'Profile updated successfully'
     });
   } catch (error) {
-    console.error('Failed to update profile:', error);
     return NextResponse.json(
       { error: 'Failed to update profile' },
       { status: 500 }
@@ -231,7 +222,6 @@ async function handleDeleteProfile() {
   try {
     await fs.unlink(PROFILE_FILE_PATH);
     
-    console.log('🗑️ Profile deleted successfully');
     return NextResponse.json({
       success: true,
       message: 'Profile deleted successfully'
@@ -244,7 +234,6 @@ async function handleDeleteProfile() {
       });
     }
     
-    console.error('Failed to delete profile:', error);
     return NextResponse.json(
       { error: 'Failed to delete profile' },
       { status: 500 }

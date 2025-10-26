@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ContentGrid from './ContentGrid';
-import VideoAnalysisEmbedded from './VideoAnalysisEmbedded';
 
 interface ToolsProps {
-  dashboardSubPage: 'scrape' | 'generate' | 'predict' | 'templates' | 'comments' | 'video-analysis' | 'ai-assistant';
+  dashboardSubPage: 'scrape' | 'generate' | 'predict' | 'templates' | 'comments' | 'ai-assistant';
   // Scraping props
   username: string;
   setUsername: (username: string) => void;
@@ -267,7 +266,6 @@ export default function Tools({
                     if (error) throw error;
                     alert('Content saved successfully!');
                   } catch (error) {
-                    console.error('Error saving content:', error);
                     alert('Failed to save content');
                   }
                 }}
@@ -336,8 +334,8 @@ export default function Tools({
                               </>
                             )}
                             {/* Insights strengths */}
-                            {aiAnalysisResults.insights?.strengths?.length > 0 ? (
-                              aiAnalysisResults.insights.strengths.slice(0, 2).map((strength: string, idx: number) => (
+                            {(aiAnalysisResults.performanceAnalysis?.whatsWorking?.length > 0 || aiAnalysisResults.contentStrategy?.strengths?.length > 0) ? (
+                              (aiAnalysisResults.performanceAnalysis?.whatsWorking || aiAnalysisResults.contentStrategy?.strengths || []).slice(0, 2).map((strength: string, idx: number) => (
                                 <li key={`strength-${idx}`} className="text-sm text-gray-300 flex items-start">
                                   <span className="text-green-400 mr-2">•</span>
                                   <span>{strength}</span>
@@ -366,15 +364,15 @@ export default function Tools({
                           </div>
                           <ul className="space-y-2">
                             {/* Show AI insights if available */}
-                            {aiAnalysisResults.insights?.weaknesses?.length > 0 || aiAnalysisResults.insights?.opportunities?.length > 0 ? (
+                            {(aiAnalysisResults.performanceAnalysis?.whatsFailing?.length > 0 || aiAnalysisResults.contentStrategy?.weaknesses?.length > 0) ? (
                               <>
-                                {aiAnalysisResults.insights?.weaknesses?.slice(0, 2).map((weakness: string, idx: number) => (
+                                {(aiAnalysisResults.performanceAnalysis?.whatsFailing || aiAnalysisResults.contentStrategy?.weaknesses || []).slice(0, 2).map((weakness: string, idx: number) => (
                                   <li key={idx} className="text-sm text-gray-300 flex items-start">
                                     <span className="text-yellow-400 mr-2">•</span>
                                     <span>{weakness}</span>
                                   </li>
                                 ))}
-                                {aiAnalysisResults.insights?.opportunities?.slice(0, 2).map((opp: string, idx: number) => (
+                                {(aiAnalysisResults.contentStrategy?.opportunities || []).slice(0, 1).map((opp: string, idx: number) => (
                                   <li key={`opp-${idx}`} className="text-sm text-gray-300 flex items-start">
                                     <span className="text-yellow-400 mr-2">•</span>
                                     <span>{opp}</span>
@@ -440,7 +438,7 @@ export default function Tools({
                           <div className="grid grid-cols-3 gap-4">
                             <div className="text-center">
                               <div className="text-2xl font-bold text-white">
-                                {formatNumber(aiAnalysisResults.performanceMetrics.avgViews || 0)}
+                                {aiAnalysisResults.performanceMetrics.avgViews && aiAnalysisResults.performanceMetrics.avgViews > 0 ? formatNumber(aiAnalysisResults.performanceMetrics.avgViews) : '?'}
                               </div>
                               <div className="text-xs text-gray-400">Avg Views</div>
                             </div>
@@ -491,11 +489,9 @@ export default function Tools({
                               if (data.success && data.data?.suggestions) {
                                 setGeneratedSuggestions(data.data.suggestions);
                               } else {
-                                console.error('No suggestions returned:', data);
                                 alert('Failed to generate content ideas. Please try again.');
                               }
                             } catch (error) {
-                              console.error('Error generating suggestions:', error);
                               alert('Failed to generate content ideas');
                             } finally {
                               setGeneratingSuggestions(false);
@@ -567,7 +563,6 @@ export default function Tools({
                               if (error) throw error;
                               alert('AI-generated content saved successfully!');
                             } catch (error) {
-                              console.error('Error saving content:', error);
                               alert('Failed to save content');
                             }
                           }}
@@ -710,7 +705,6 @@ export default function Tools({
                       alert('✅ Content saved to library! Go to Contents tab to view it.');
 
                     } catch (error: any) {
-                      console.error('Error saving content:', error);
                       alert('❌ Failed to save content');
                     }
                   }}
@@ -772,7 +766,7 @@ export default function Tools({
                     <div className="text-sm text-gray-400">Expected Engagement</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white">{formatNumber(viralPrediction.prediction?.expectedViews || 0)}</div>
+                    <div className="text-2xl font-bold text-white">{viralPrediction.prediction?.expectedViews && viralPrediction.prediction.expectedViews > 0 ? formatNumber(viralPrediction.prediction.expectedViews) : '?'}</div>
                     <div className="text-sm text-gray-400">Expected Views</div>
                   </div>
                   <div className="text-center">
@@ -858,7 +852,6 @@ export default function Tools({
                 }
               } catch (error) {
                 alert('Failed to scrape comments');
-                console.error(error);
                 setScrapedComments([]);
               } finally {
                 setCommentsLoading(false);
@@ -1000,7 +993,6 @@ export default function Tools({
                       setCommentAnalysis(data.analysis);
                     }
                   } catch (error) {
-                    console.error('Comment analysis failed:', error);
                     alert('Failed to analyze comments');
                   } finally {
                     setAnalyzingComments(false);
@@ -1134,10 +1126,6 @@ export default function Tools({
         </>
       )}
 
-      {/* Video Analysis */}
-      {dashboardSubPage === 'video-analysis' && (
-        <VideoAnalysisEmbedded />
-      )}
 
       {/* AI Content Assistant */}
       {dashboardSubPage === 'ai-assistant' && (
@@ -1153,6 +1141,70 @@ interface Message {
   content: string;
   timestamp: Date;
 }
+
+// Function to parse and style markdown content for AI assistant
+const parseMarkdown = (text: string) => {
+  if (!text) return text;
+  
+  // Split by lines to handle headers
+  const lines = text.split('\n');
+  const styledLines = lines.map((line, index) => {
+    // Handle ### headers
+    if (line.startsWith('### ')) {
+      const headerText = line.replace('### ', '');
+      return (
+        <h3 key={index} className="text-xl font-black text-white mb-3 mt-4 first:mt-0 border-b border-white/20 pb-2">
+          {headerText}
+        </h3>
+      );
+    }
+    
+    // Handle numbered lists (1. 2. 3. etc.)
+    if (/^\d+\.\s/.test(line)) {
+      const listText = line.replace(/^\d+\.\s/, '');
+      return (
+        <div key={index} className="flex items-start mb-2">
+          <span className="text-blue-400 font-semibold mr-2 mt-0.5">•</span>
+          <span className="text-gray-300 leading-relaxed">{parseBoldText(listText)}</span>
+        </div>
+      );
+    }
+    
+    // Handle bullet points (- or *)
+    if (/^[-*]\s/.test(line)) {
+      const listText = line.replace(/^[-*]\s/, '');
+      return (
+        <div key={index} className="flex items-start mb-2">
+          <span className="text-blue-400 font-semibold mr-2 mt-0.5">•</span>
+          <span className="text-gray-300 leading-relaxed">{parseBoldText(listText)}</span>
+        </div>
+      );
+    }
+    
+    // Handle ** bold text
+    return (
+      <p key={index} className="text-gray-300 leading-relaxed mb-2">
+        {parseBoldText(line)}
+      </p>
+    );
+  });
+  
+  return styledLines;
+};
+
+// Helper function to parse bold text
+const parseBoldText = (text: string) => {
+  const boldRegex = /\*\*(.*?)\*\*/g;
+  const parts = text.split(boldRegex);
+  return parts.map((part, partIndex) => {
+    if (partIndex % 2 === 1) {
+      // This is bold text - hide the ** and make it bold
+      return <strong key={partIndex} className="text-white font-semibold">{part}</strong>;
+    }
+    // Regular text - also remove any remaining ** characters
+    return part.replace(/\*\*/g, '');
+  });
+};
 
 function AIContentAssistant({ userProfile }: { userProfile?: any }) {
   const [messages, setMessages] = useState<Message[]>([
@@ -1202,7 +1254,6 @@ function AIContentAssistant({ userProfile }: { userProfile?: any }) {
         throw new Error('Failed to get response');
       }
     } catch (error) {
-      console.error('Error:', error);
       const errorMessage: Message = {
         role: 'assistant',
         content: "I apologize, but I'm having trouble responding right now. Please try again.",
@@ -1244,7 +1295,7 @@ function AIContentAssistant({ userProfile }: { userProfile?: any }) {
                   : 'bg-white/10 text-white'
               }`}
             >
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              <div className="whitespace-pre-wrap">{parseMarkdown(message.content)}</div>
               <p className={`text-xs mt-2 ${message.role === 'user' ? 'text-black/60' : 'text-gray-500'}`}>
                 {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>

@@ -50,9 +50,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TEMPORARY: Subscription check disabled for testing
-    // TODO: Re-enable before production
-    /*
     // 🔒 SECURITY: Verify active subscription (SERVER-SIDE - CANNOT BE BYPASSED)
     const subscriptionCheck = await requireActiveSubscription(user.id);
     
@@ -62,7 +59,6 @@ export async function POST(request: NextRequest) {
         { status: subscriptionCheck.status }
       );
     }
-    */
 
     const body: ScrapeRequest = await request.json();
     const { username, platform: reqPlatform } = body;
@@ -81,8 +77,6 @@ export async function POST(request: NextRequest) {
     // Always fetch the latest 10 real videos
     validCount = 10;
     
-    console.log(`Fetching ${validCount} videos from @${cleanUser} on ${platform}`);
-    
     // Use real Apify scraper
     const scraper = new ApifyScraper({
       platform,
@@ -91,7 +85,6 @@ export async function POST(request: NextRequest) {
     });
     
     const { videos, dataSource } = await scraper.scrapeVideos();
-    console.log(`Successfully scraped ${videos.length} videos from Apify`);
     
     if (!videos || videos.length === 0) {
       return NextResponse.json(
@@ -115,7 +108,6 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Scraping error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch videos';
     
     // For other errors, return the error

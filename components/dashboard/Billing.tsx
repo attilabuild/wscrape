@@ -34,7 +34,6 @@ export default function Billing() {
         setSubscription(data);
       }
     } catch (error) {
-      console.error('Error fetching subscription:', error);
     } finally {
       setLoading(false);
     }
@@ -52,7 +51,6 @@ export default function Billing() {
         window.location.href = data.url;
       }
     } catch (error) {
-      console.error('Error opening billing portal:', error);
       setManagingBilling(false);
     }
   };

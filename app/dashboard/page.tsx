@@ -55,7 +55,7 @@ export default function Dashboard() {
   const [generatedScripts, setGeneratedScripts] = useState<{[key: string]: any}>({});
   
   // Dashboard sub-navigation states
-  const [dashboardSubPage, setDashboardSubPage] = useState<'scrape' | 'generate' | 'predict' | 'templates' | 'comments' | 'video-analysis' | 'ai-assistant'>('scrape');
+  const [dashboardSubPage, setDashboardSubPage] = useState<'scrape' | 'generate' | 'predict' | 'templates' | 'comments' | 'ai-assistant'>('scrape');
   const [showDashboardSubNav, setShowDashboardSubNav] = useState(false);
 
   // Contents Tab States
@@ -108,9 +108,7 @@ export default function Dashboard() {
   const copyToClipboard = async (text: string, type: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      console.log(`${type} copied to clipboard`);
     } catch (err) {
-      console.error('Failed to copy text: ', err);
     }
   };
 
@@ -179,7 +177,6 @@ export default function Dashboard() {
         throw new Error(result.error || 'Unknown error');
       }
     } catch (error) {
-      console.error('Error fetching videos:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch videos');
       setVideos([]);
       setShowResults(false);
@@ -211,10 +208,8 @@ export default function Dashboard() {
       if (result.success) {
         setAiAnalysisResults(result.data);
       } else {
-        console.error('AI analysis failed:', result.error);
       }
     } catch (error) {
-      console.error('AI analysis failed:', error);
     }
     setAiAnalysisLoading(false);
   };
@@ -258,7 +253,6 @@ export default function Dashboard() {
         setGeneratedScripts({});
       }
     } catch (error) {
-      console.error('Content generation failed:', error);
     }
     setGeneratingContent(false);
   };
@@ -288,7 +282,6 @@ export default function Dashboard() {
         }));
       }
     } catch (error) {
-      console.error('Script generation failed:', error);
     }
     setGeneratingScript(null);
   };
@@ -314,7 +307,6 @@ export default function Dashboard() {
         setViralPrediction(result.data);
       }
     } catch (error) {
-      console.error('Viral prediction failed:', error);
     }
   };
 
@@ -378,7 +370,6 @@ export default function Dashboard() {
         setContentStats(result.stats);
       }
     } catch (error) {
-      console.error('Failed to fetch saved content:', error);
     }
     setContentLoading(false);
   };
@@ -397,7 +388,6 @@ export default function Dashboard() {
         setSavedContent(result.data);
       }
     } catch (error) {
-      console.error('Failed to search content:', error);
     }
     setContentLoading(false);
   };
@@ -417,7 +407,6 @@ export default function Dashboard() {
         setSavedContent(result.data);
       }
     } catch (error) {
-      console.error('Failed to filter content:', error);
     }
     setContentLoading(false);
   };
@@ -437,7 +426,6 @@ export default function Dashboard() {
         setUserProfile(result.data);
       }
     } catch (error) {
-      console.error('Failed to fetch user profile:', error);
     }
     setProfileLoading(false);
   };
@@ -457,10 +445,8 @@ export default function Dashboard() {
       const result = await response.json();
       if (result.success) {
         setUserProfile(result.data);
-        console.log('Profile saved successfully!');
       }
     } catch (error) {
-      console.error('Failed to save profile:', error);
     }
     setProfileSaving(false);
   };
@@ -517,7 +503,6 @@ export default function Dashboard() {
           }
         }
       } catch (error) {
-        console.error('Error loading user profile:', error);
       }
     };
 
@@ -542,7 +527,6 @@ export default function Dashboard() {
           setUserSavedContent(data);
         }
       } catch (error) {
-        console.error('Error fetching user saved content:', error);
       }
     };
 

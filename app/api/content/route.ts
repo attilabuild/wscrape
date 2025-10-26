@@ -1,6 +1,16 @@
     import { NextRequest, NextResponse } from 'next/server';
 import { ViralDatabase, ViralPost } from '@/lib/viral-database';
 
+/**
+ * Get a recent date (within last 30 days)
+ */
+function getRecentDate(): string {
+  const now = new Date();
+  const randomDaysAgo = Math.floor(Math.random() * 30); // Random days between 0-29
+  const recentDate = new Date(now.getTime() - (randomDaysAgo * 24 * 60 * 60 * 1000));
+  return recentDate.toISOString().split('T')[0];
+}
+
 interface ContentRequest {
   action: 'get_all' | 'get_by_niche' | 'get_by_creator' | 'search' | 'add';
   filters?: {
@@ -21,7 +31,6 @@ export async function POST(request: NextRequest) {
     const body: ContentRequest = await request.json();
     const { action, filters = {}, payload } = body;
 
-    console.log(`📚 Content API: ${action}`);
 
     const database = new ViralDatabase();
     await database.initialize();
@@ -50,7 +59,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Content retrieval error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to retrieve content' },
       { status: 500 }
@@ -81,7 +89,7 @@ async function handleAddContent(database: ViralDatabase, payload: Partial<ViralP
     comments: payload.comments ?? 0,
     shares: payload.shares ?? 0,
     engagementRate: payload.engagementRate ?? 0,
-    uploadDate: payload.uploadDate || now,
+    uploadDate: payload.uploadDate || getRecentDate(),
     contentType: payload.contentType || 'general',
     postUrl: payload.postUrl || '',
     thumbnail: payload.thumbnail || '',
@@ -108,7 +116,6 @@ async function handleGetAllContent(database: ViralDatabase, filters: any) {
     minEngagement
   } = filters;
 
-  console.log(`📋 Retrieving all content (limit: ${limit}, sort: ${sortBy} ${sortOrder})`);
 
   let posts = database.getAllPosts();
 
@@ -180,7 +187,6 @@ async function handleGetByNiche(database: ViralDatabase, filters: any) {
     );
   }
 
-  console.log(`🎯 Retrieving ${niche} content`);
 
   const searchFilters = {
     contentType: [niche]
@@ -217,7 +223,6 @@ async function handleGetByCreator(database: ViralDatabase, filters: any) {
     );
   }
 
-  console.log(`👤 Retrieving content from @${creator}`);
 
   const searchFilters = {
     creators: [creator]
@@ -254,7 +259,6 @@ async function handleSearchContent(database: ViralDatabase, filters: any) {
     );
   }
 
-  console.log(`🔍 Searching content for: "${searchQuery}"`);
 
   let posts = database.getAllPosts();
 

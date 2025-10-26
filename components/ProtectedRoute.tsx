@@ -8,7 +8,6 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
-  const [hasSubscription, setHasSubscription] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -19,24 +18,23 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         return;
       }
       
-      // Check if user has active subscription
+      // Check for active subscription
       const { data: subscription } = await supabase
         .from('user_subscriptions')
         .select('stripe_status, current_period_end')
         .eq('user_id', session.user.id)
         .single();
 
-      const isActive = subscription && 
+      const hasActiveSubscription = subscription && 
         ['active', 'trialing'].includes(subscription.stripe_status) &&
         new Date(subscription.current_period_end) > new Date();
 
-      if (!isActive) {
+      if (!hasActiveSubscription) {
         router.push('/pricing');
         return;
       }
-      
+
       setAuthenticated(true);
-      setHasSubscription(true);
       setLoading(false);
     };
 
@@ -47,22 +45,21 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       if (!session) {
         router.push('/login');
       } else {
-        // Recheck subscription on auth change
-        const { data: userSubscription } = await supabase
+        // Re-check subscription on auth state change
+        const { data: subscriptionData } = await supabase
           .from('user_subscriptions')
           .select('stripe_status, current_period_end')
           .eq('user_id', session.user.id)
           .single();
 
-        const isActive = userSubscription && 
-          ['active', 'trialing'].includes(userSubscription.stripe_status) &&
-          new Date(userSubscription.current_period_end) > new Date();
+        const hasActiveSubscription = subscriptionData && 
+          ['active', 'trialing'].includes(subscriptionData.stripe_status) &&
+          new Date(subscriptionData.current_period_end) > new Date();
 
-        if (!isActive) {
+        if (!hasActiveSubscription) {
           router.push('/pricing');
         } else {
           setAuthenticated(true);
-          setHasSubscription(true);
           setLoading(false);
         }
       }
@@ -82,7 +79,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     );
   }
 
-  if (!authenticated || !hasSubscription) {
+  if (!authenticated) {
     return null;
   }
 

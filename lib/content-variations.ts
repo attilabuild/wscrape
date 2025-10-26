@@ -161,7 +161,6 @@ export class ContentVariationGenerator {
    * Generate multiple variations from a winning formula
    */
   generateVariations(request: VariationRequest): ContentVariation[] {
-    console.log(`🎨 Generating ${request.count} content variations...`);
     
     const variations: ContentVariation[] = [];
     const originalHook = this.extractHook(request.originalContent);
@@ -194,7 +193,6 @@ export class ContentVariationGenerator {
     adaptedContent: ContentVariation;
     adaptationExplanation: string;
   }[] {
-    console.log(`🎯 Adapting content to ${targetNiches.length} niches...`);
     
     return targetNiches.map(niche => {
       const adaptation = this.createNicheAdaptation(originalContent, niche);
@@ -216,7 +214,6 @@ export class ContentVariationGenerator {
     variation: ContentVariation;
     applicabilityScore: number;
   }[] {
-    console.log(`🧬 Applying viral formulas to content...`);
     
     const targetFormulas = formulaIds 
       ? this.viralFormulas.filter(f => formulaIds.includes(f.id))
@@ -244,7 +241,6 @@ export class ContentVariationGenerator {
     testHypothesis: string;
     expectedWinner: 'A' | 'B';
   }[] {
-    console.log(`🧪 Generating A/B test variations...`);
     
     const tests = [
       {
@@ -281,7 +277,6 @@ export class ContentVariationGenerator {
     variations: ContentVariation[];
     bestVariation: ContentVariation;
   }[] {
-    console.log(`⚡ Batch generating variations from ${winningPosts.length} winning posts...`);
     
     return winningPosts.map(post => {
       const request: VariationRequest = {

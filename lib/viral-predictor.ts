@@ -116,7 +116,6 @@ export class ViralPredictor {
     scheduledTime?: Date,
     creatorFollowers?: number
   ): PredictionResult {
-    console.log(`🔮 Predicting viral potential for ${contentType} content...`);
     
     // Analyze content metrics
     const contentMetrics = this.analyzeContentMetrics(content);
@@ -166,7 +165,6 @@ export class ViralPredictor {
    * Batch predict multiple content pieces
    */
   batchPredict(contents: { text: string; type: string; time?: Date }[]): PredictionResult[] {
-    console.log(`🚀 Batch predicting ${contents.length} content pieces...`);
     
     return contents.map(content => 
       this.predictViral(content.text, content.type, content.time)
@@ -288,10 +286,8 @@ export class ViralPredictor {
       this.viralDatabase.push(...newData);
     }
     
-    console.log(`🧠 Training viral prediction model on ${this.viralDatabase.length} posts...`);
     
     if (this.viralDatabase.length < 100) {
-      console.log('⚠️  Insufficient data for training. Using default weights.');
       return;
     }
     
@@ -301,7 +297,6 @@ export class ViralPredictor {
     // Update model weights based on correlations
     this.updateModelWeights(correlations);
     
-    console.log('✅ Model training complete. Updated weights:', this.modelWeights);
   }
 
   // PRIVATE METHODS

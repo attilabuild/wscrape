@@ -44,7 +44,6 @@ export class VideoScraper {
         throw new Error(`Unsupported platform: ${this.config.platform}`);
       }
     } catch (error) {
-      console.error('Scraping failed:', error);
       throw error;
     }
   }

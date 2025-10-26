@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
       stripeConfig.webhookSecret
     );
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
     return NextResponse.json(
       { error: 'Invalid signature' },
       { status: 400 }
@@ -49,7 +48,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error: any) {
-    console.error('Webhook handler error:', error);
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 }

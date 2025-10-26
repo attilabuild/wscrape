@@ -165,13 +165,12 @@ export default function Contents({
           avgViews: metrics?.performanceMetrics?.avgViews || 'N/A',
           avgEngagement: metrics?.performanceMetrics?.avgEngagement?.toFixed(1) || '0',
           viralRate: metrics?.performanceMetrics?.viralRate || '0',
-          strengths: analysis.strengths?.slice(0, 3) || ['Good engagement'],
-          improvements: analysis.improvements?.slice(0, 3) || ['Keep up the good work!']
+          strengths: analysis.performanceAnalysis?.whatsWorking?.slice(0, 3) || analysis.contentStrategy?.strengths?.slice(0, 3) || ['Good engagement'],
+          improvements: analysis.performanceAnalysis?.whatsFailing?.slice(0, 3) || analysis.contentStrategy?.weaknesses?.slice(0, 3) || ['Keep up the good work!']
         });
         setShowAnalysisModal(true);
       }
     } catch (error) {
-      console.error('Analysis failed:', error);
       alert('Failed to analyze content. Please try again.');
     } finally {
       setAnalyzingContent(null);
@@ -219,7 +218,6 @@ export default function Contents({
         alert('Failed to generate content ideas. Please try again.');
       }
     } catch (error) {
-      console.error('Generation failed:', error);
       alert('Failed to generate similar content. Please try again.');
     } finally {
       setGeneratingSimilar(null);
@@ -289,7 +287,6 @@ export default function Contents({
 
       alert('✅ Content idea saved!');
     } catch (error) {
-      console.error('Error saving idea:', error);
       alert('❌ Failed to save content idea');
     } finally {
       setSavingIndividualIdea(null);
@@ -363,7 +360,6 @@ export default function Contents({
       setSavedIdeas(new Set());
       alert('✅ Content ideas saved successfully!');
     } catch (error) {
-      console.error('Error saving ideas:', error);
       alert('❌ Failed to save content ideas');
     } finally {
       setSavingIdeas(false);
@@ -566,7 +562,6 @@ export default function Contents({
                 // refresh saved content
                 fetchSavedContent();
               } catch (err) {
-                console.error(err);
               } finally {
                 setSubmitLoading(false);
               }
@@ -736,23 +731,29 @@ export default function Contents({
           </div>
           <div className="border border-white/10 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-white">
-              {hasRealContent 
-                ? (contentStats.avgViralScore?.toFixed(0) || 0) 
-                : displayContent.length > 0 
-                  ? Math.round(displayContent.reduce((sum, content) => sum + (content.viralScore || 0), 0) / displayContent.length)
-                  : 0
-              }
+              {(() => {
+                const avgViralScore = hasRealContent 
+                  ? (contentStats.avgViralScore || 0)
+                  : displayContent.length > 0 
+                    ? Math.round(displayContent.reduce((sum, content) => sum + (content.viralScore || 0), 0) / displayContent.length)
+                    : 0;
+                
+                return avgViralScore > 0 ? avgViralScore : '?';
+              })()}
             </div>
             <div className="text-sm text-gray-400">Avg Viral Score</div>
           </div>
           <div className="border border-white/10 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-white">
-              {hasRealContent 
-                ? `${contentStats.avgEngagement?.toFixed(1) || 0}%`
-                : displayContent.length > 0
-                  ? `${(displayContent.reduce((sum, content) => sum + (content.engagementRate || 0), 0) / displayContent.length).toFixed(1)}%`
-                  : '0%'
-              }
+              {(() => {
+                const avgEngagement = hasRealContent 
+                  ? (contentStats.avgEngagement || 0)
+                  : displayContent.length > 0
+                    ? (displayContent.reduce((sum, content) => sum + (content.engagementRate || 0), 0) / displayContent.length)
+                    : 0;
+                
+                return avgEngagement > 0 ? `${avgEngagement.toFixed(1)}%` : '?';
+              })()}
             </div>
             <div className="text-sm text-gray-400">Avg Engagement</div>
           </div>
@@ -799,7 +800,6 @@ export default function Contents({
             setDbContent(prev => prev.filter(item => item.id !== content.id));
             alert('✅ Content deleted successfully!');
           } catch (error: any) {
-            console.error('Error deleting content:', error);
             alert('❌ Failed to delete content');
           }
         }}
@@ -1020,3 +1020,4 @@ export default function Contents({
     </div>
   );
 }
+

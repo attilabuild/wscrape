@@ -6,8 +6,8 @@ import { supabase } from '@/lib/supabase';
 interface SidebarProps {
   activeTab: 'dashboard' | 'contents' | 'profile' | 'calendar' | 'templates' | 'billing';
   setActiveTab: (tab: 'dashboard' | 'contents' | 'profile' | 'calendar' | 'templates' | 'billing') => void;
-  dashboardSubPage: 'scrape' | 'generate' | 'predict' | 'templates' | 'comments' | 'video-analysis' | 'ai-assistant';
-  setDashboardSubPage: (page: 'scrape' | 'generate' | 'predict' | 'templates' | 'comments' | 'video-analysis' | 'ai-assistant') => void;
+  dashboardSubPage: 'scrape' | 'generate' | 'predict' | 'templates' | 'comments' | 'ai-assistant';
+  setDashboardSubPage: (page: 'scrape' | 'generate' | 'predict' | 'templates' | 'comments' | 'ai-assistant') => void;
   showDashboardSubNav: boolean;
   setShowDashboardSubNav: (show: boolean) => void;
   sidebarOpen: boolean;
@@ -155,19 +155,6 @@ export default function Sidebar({
                       <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
                     </svg>
                     <span>Scrape Comments</span>
-                  </button>
-                  <button
-                    onClick={() => setDashboardSubPage('video-analysis')}
-                    className={`w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
-                      dashboardSubPage === 'video-analysis'
-                        ? 'text-white bg-white/10'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                    </svg>
-                    <span>Video Analysis</span>
                   </button>
                   <button
                     onClick={() => setDashboardSubPage('ai-assistant')}

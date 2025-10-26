@@ -7,17 +7,34 @@ import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [state, handleSubmit] = useForm("mblkbgqv");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+      setIsChecking(false);
+      
       if (session) {
         router.push('/dashboard');
       }
     };
     checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
   }, [router]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
@@ -39,18 +56,37 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <a 
-                href="/login"
-                className="text-gray-300 hover:text-white transition-colors mr-2"
-              >
-                Login
-              </a>
-              <a 
-                href="/signup"
-                className="bg-gradient-to-r  text-black bg-white  px-6 py-2 rounded-full font-medium hover:bg-gray-200 transition-all"
-              >
-                Get started
-              </a>
+              {isLoggedIn ? (
+                <>
+                  <a 
+                    href="/dashboard"
+                    className="text-gray-300 hover:text-white transition-colors"
+                  >
+                    Dashboard
+                  </a>
+                  <button
+                    onClick={handleSignOut}
+                    className="bg-gradient-to-r text-black bg-white px-6 py-2 rounded-full font-medium hover:bg-gray-200 transition-all"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <a 
+                    href="/login"
+                    className="text-gray-300 hover:text-white transition-colors mr-2"
+                  >
+                    Login
+                  </a>
+                  <a 
+                    href="/signup"
+                    className="bg-gradient-to-r text-black bg-white px-6 py-2 rounded-full font-medium hover:bg-gray-200 transition-all"
+                  >
+                    Get started
+                  </a>
+                </>
+              )}
             </div>
           </div>
         </div>
