@@ -25,33 +25,39 @@ export function createServerSupabaseClient() {
 export async function createSupabaseFromRequest(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   
+  // Get all cookies using Next.js cookies() API
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
+  const cookieString = allCookies.map(c => `${c.name}=${c.value}`).join('; ');
+  
   // Get the auth token from the Authorization header
   const authHeader = request.headers.get('authorization');
   const token = authHeader?.replace('Bearer ', '');
   
-  // Get all cookies from the request
-  const cookieHeader = request.headers.get('cookie');
-  
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
+      persistSession: false,
+      storage: {
+        getItem: async (key) => {
+          const value = cookieStore.get(key)?.value;
+          return value || null;
+        },
+        setItem: async (key, value) => {
+          // Not implemented for server-side
+        },
+        removeItem: async (key) => {
+          // Not implemented for server-side
+        }
+      }
     },
     global: {
       headers: {
         ...(token && { Authorization: `Bearer ${token}` }),
-        ...(cookieHeader && { Cookie: cookieHeader })
+        ...(cookieString && { Cookie: cookieString })
       }
     }
   });
-
-  // If we have a token, set it as the session
-  if (token) {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error) {
-      console.log('Token validation error:', error.message);
-    }
-  }
 
   return supabase;
 }
