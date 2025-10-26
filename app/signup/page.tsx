@@ -205,6 +205,7 @@ export default function SignupPage() {
           <p className="mt-4 text-center text-xs text-gray-400">
             Already have an account? <a href="/login" className="text-white underline">Sign in</a>
           </p>
+          </div>
         </div>
       </div>
     </div>
