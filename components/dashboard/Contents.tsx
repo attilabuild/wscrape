@@ -231,9 +231,11 @@ export default function Contents({
             competitorData: dbContent.map(content => ({
               hook: content.hook,
               caption: content.caption,
+              fullContent: content.transcript || content.caption,
               views: content.views || 0,
               likes: content.likes || 0,
               viralScore: content.viralScore || 0,
+              viral_score: content.viralScore || 0,
               hashtags: content.hashtags || []
             })),
             count: 5
