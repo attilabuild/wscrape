@@ -697,34 +697,46 @@ Provide your analysis in this EXACT JSON structure (NO markdown, NO code blocks,
 
   private buildSuggestionPrompt(niche: string, targetAudience: string, contentStyle: string, competitorData?: any[]): string {
     const competitorInsights = competitorData && competitorData.length > 0 ? `
-REFERENCE CONTENT ANALYSIS:
-${competitorData.slice(0, 5).map(item => {
+YOUR SAVED CONTENT (Analyze these patterns to generate similar viral content):
+${competitorData.slice(0, 10).map(item => {
   // Handle both scraped videos and saved content
   const hook = item.hook || item.caption || 'Content idea';
-  const metric = item.views 
-    ? `${item.views.toLocaleString()} views` 
-    : item.viral_score 
-      ? `viral score: ${item.viral_score}` 
-      : 'high engagement';
-  return `- ${hook} (${metric})`;
-}).join('\n')}
+  const caption = item.caption || item.fullContent || '';
+  const hashtags = Array.isArray(item.hashtags) ? item.hashtags.join(', ') : item.hashtags || '';
+  const viralScore = item.viral_score || item.viralScore || 0;
+  
+  return `Hook: "${hook}"
+Caption/Script: "${caption}"
+Hashtags: ${hashtags}
+Viral Score: ${viralScore}/100
+
+`;
+}).join('\n---\n')}
+
+Analyze the themes, styles, hooks, hashtags, and content patterns from YOUR SAVED CONTENT above. Generate NEW content that:
+- Follows the SAME patterns, themes, and styles as your saved content
+- Uses similar hooks structures and psychological triggers
+- Matches the same tone and messaging style
+- Uses similar hashtag strategies
+- Creates content that feels consistent with your existing viral content
 ` : '';
 
     return `
-Generate 5 HIGH-VIRAL content suggestions for:
+Generate 5 HIGH-VIRAL content suggestions that match your existing content style:
 
-NICHE: ${niche}
 TARGET AUDIENCE: ${targetAudience}
 CONTENT STYLE: ${contentStyle}
 
 ${competitorInsights}
 
-Each suggestion should be designed to:
+Analyze the patterns, hooks, themes, and styles from the content above. Generate NEW content that:
+- Follows the SAME patterns and themes as the content above
+- Uses similar hook structures and psychological triggers
+- Matches the tone and messaging style
+- Uses similar hashtag strategies
+- Creates content that feels consistent with your existing viral content
 - Stop the scroll within 3 seconds
 - Generate EXTREMELY HIGH engagement (comments, shares, saves)
-- Appeal to the ${niche} audience
-- Leverage current trends and psychology
-- Be optimized for TikTok/Instagram algorithms
 - Have VIRAL POTENTIAL of 69-95% engagement rate
 
 Respond with JSON array of exactly 5 suggestions in this format:
