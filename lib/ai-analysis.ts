@@ -904,8 +904,8 @@ Provide strategic competitive analysis in this JSON format:
     // SPECIFIC weaknesses
     const weaknesses = [];
     if (hasRealMetrics && engagementRate < 5) weaknesses.push(`Low ${engagementRate.toFixed(1)}% engagement (below 5% benchmark)`);
-    if (!hasRealMetrics) weaknesses.push([]); // No weaknesses if no real metrics
-    if (consistencyScore < 50) weaknesses.push(`Inconsistent ${consistencyScore.toFixed(0)}/100 performance (unclear content strategy)`);
+    // Don't add weaknesses if no real metrics - just skip engagement-related issues
+    if (hasRealMetrics && consistencyScore < 50) weaknesses.push(`Inconsistent ${consistencyScore.toFixed(0)}/100 performance (unclear content strategy)`);
     if (!hasQuestions) weaknesses.push('No question hooks found (questions boost engagement 20-30%)');
     if (!hasNumbers) weaknesses.push('No number-based hooks (numbers increase click-through rates)');
     if (performanceRatio > 10) {
