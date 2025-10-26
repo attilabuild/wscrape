@@ -17,6 +17,17 @@ export interface SubscriptionStatus {
  */
 export async function verifyActiveSubscription(userId: string): Promise<SubscriptionStatus> {
   try {
+    // TEMPORARY: Allow specific user ID with manual premium access
+    const allowedUserIds = ['643222b4-1964-48ba-a5fd-52df595b3676'];
+    if (allowedUserIds.includes(userId)) {
+      console.log('User has manual premium access (temporary fix)');
+      return {
+        isActive: true,
+        status: 'premium',
+        periodEnd: '2099-12-31'
+      };
+    }
+    
     // Check if service role key is available
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     console.log('Service role key exists:', !!serviceKey);
