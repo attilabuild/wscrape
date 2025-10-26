@@ -50,15 +50,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Debug: Log user ID
+    console.log('User ID from session:', user.id);
+    
     // 🔒 SECURITY: Verify active subscription (SERVER-SIDE - CANNOT BE BYPASSED)
     const subscriptionCheck = await requireActiveSubscription(user.id);
     
     if (!subscriptionCheck.authorized) {
+      console.log('Subscription check failed:', subscriptionCheck);
       return NextResponse.json(
         { error: subscriptionCheck.error },
         { status: subscriptionCheck.status }
       );
     }
+    
+    console.log('Subscription authorized!');
 
     const body: ScrapeRequest = await request.json();
     const { username, platform: reqPlatform } = body;
