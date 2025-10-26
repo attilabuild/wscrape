@@ -808,8 +808,10 @@ Provide strategic competitive analysis in this JSON format:
   }
 
   private getFallbackAnalysis(videos: VideoData[], username: string, niche: string): AIAnalysis {
-    const avgViews = videos.reduce((sum, v) => sum + v.views, 0) / videos.length;
-    const avgLikes = videos.reduce((sum, v) => sum + v.likes, 0) / videos.length;
+    // Check if these are AI-generated posts without real metrics
+    const hasRealMetrics = videos.some(v => v.views > 0);
+    const avgViews = hasRealMetrics ? videos.reduce((sum, v) => sum + v.views, 0) / videos.length : 0;
+    const avgLikes = hasRealMetrics ? videos.reduce((sum, v) => sum + v.likes, 0) / videos.length : 0;
     const engagementRate = avgViews > 0 ? (avgLikes / avgViews) * 100 : 0;
     
     // Analyze content patterns from real data
@@ -850,9 +852,15 @@ Provide strategic competitive analysis in this JSON format:
       performanceAnalysis.topPerformers.push(`"${topPerformer.hook.substring(0, 40)}..." - ${topPerformer.views.toLocaleString()} views`);
     }
     
-    // Identify what's failing
-    if (engagementRate < 5) {
+    // Identify what's failing (only if there are real metrics)
+    if (hasRealMetrics && engagementRate < 5) {
       performanceAnalysis.whatsFailing.push(`Low ${engagementRate.toFixed(1)}% engagement (below 5% benchmark)`);
+    }
+    
+    // If no real metrics, add positive message
+    if (!hasRealMetrics) {
+      performanceAnalysis.whatsWorking.push('Content library created - ready to analyze once metrics are available');
+      performanceAnalysis.whatsFailing = []; // Clear engagement failures
     }
     if (performanceRatio > 10) {
       const ratioText = performanceRatio === Infinity ? 'Massive' : `${performanceRatio.toFixed(1)}x`;
@@ -895,7 +903,8 @@ Provide strategic competitive analysis in this JSON format:
     
     // SPECIFIC weaknesses
     const weaknesses = [];
-    if (engagementRate < 5) weaknesses.push(`Low ${engagementRate.toFixed(1)}% engagement (below 5% benchmark)`);
+    if (hasRealMetrics && engagementRate < 5) weaknesses.push(`Low ${engagementRate.toFixed(1)}% engagement (below 5% benchmark)`);
+    if (!hasRealMetrics) weaknesses.push([]); // No weaknesses if no real metrics
     if (consistencyScore < 50) weaknesses.push(`Inconsistent ${consistencyScore.toFixed(0)}/100 performance (unclear content strategy)`);
     if (!hasQuestions) weaknesses.push('No question hooks found (questions boost engagement 20-30%)');
     if (!hasNumbers) weaknesses.push('No number-based hooks (numbers increase click-through rates)');
