@@ -453,18 +453,6 @@ export default function Contents({
           </div>
         </div>
 
-        {/* Quick Filters */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => {
-              setContentFilters((prev: any) => ({ ...prev, niche: '', creator: '', searchQuery: '' }));
-              fetchSavedContent();
-            }}
-            className="px-3 py-1 text-xs bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
-          >
-            Clear All
-          </button>
-        </div>
       </div>
 
       {/* Add Content Manually */}
