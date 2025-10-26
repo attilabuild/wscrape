@@ -23,12 +23,21 @@ export async function verifyActiveSubscription(userId: string): Promise<Subscrip
     // Query subscription from database
     const { data: subscription, error } = await supabase
       .from('user_subscriptions')
-      .select('stripe_status, current_period_end, cancel_at_period_end')
+      .select('stripe_status, current_period_end, cancel_at_period_end, premium_access')
       .eq('user_id', userId)
       .single();
 
     if (error || !subscription) {
       return { isActive: false };
+    }
+
+    // Check if user has manual premium access (granted without subscription)
+    if (subscription.premium_access === true) {
+      return {
+        isActive: true,
+        status: 'premium',
+        periodEnd: subscription.current_period_end || '2099-12-31'
+      };
     }
 
     // Check if subscription is active

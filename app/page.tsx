@@ -320,13 +320,7 @@ export default function Home() {
                   <svg className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-white">AI-Powered Viral Analysis</span>
-                </div>
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-white">AI Content Generation</span>
+                  <span className="text-white">AI Content Idea Generation</span>
                 </div>
                 <div className="flex items-center">
                   <svg className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -382,15 +376,15 @@ export default function Home() {
           
           <div className="mb-12 grid gap-8 md:grid-cols-3">
             <div className="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-              <div className="mb-2 text-3xl font-bold text-white">10K+</div>
+              <div className="mb-2 text-3xl font-bold text-white">1K+</div>
               <p className="text-gray-400">Content pieces generated</p>
             </div>
             <div className="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-              <div className="mb-2 text-3xl font-bold text-white">5+</div>
+              <div className="mb-2 text-3xl font-bold text-white">New</div>
               <p className="text-gray-400">Analysis tools</p>
             </div>
             <div className="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-              <div className="mb-2 text-3xl font-bold text-white">$20</div>
+              <div className="mb-2 text-3xl font-bold text-white">$29.99</div>
               <p className="text-gray-400">Per month</p>
             </div>
           </div>

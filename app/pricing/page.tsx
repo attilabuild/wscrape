@@ -150,7 +150,7 @@ export default function PricingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 <div>
-                  <div className="font-medium">AI-Powered Analysis</div>
+                  <div className="font-medium">AI-Powered Idea Analysis</div>
                   <div className="text-sm text-gray-400">Advanced viral content predictions and insights</div>
                 </div>
               </div>
@@ -172,16 +172,6 @@ export default function PricingPage() {
                 <div>
                   <div className="font-medium">Content Calendar</div>
                   <div className="text-sm text-gray-400">Schedule and organize your content strategy</div>
-                </div>
-              </div>
-
-              <div className="flex items-start">
-                <svg className="w-6 h-6 text-green-400 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <div>
-                  <div className="font-medium">Analytics & Insights</div>
-                  <div className="text-sm text-gray-400">Deep dive into what makes content go viral</div>
                 </div>
               </div>
 
@@ -242,16 +232,6 @@ export default function PricingPage() {
                 Secure payment powered by Stripe
               </p>
             </div>
-          </div>
-
-          {/* Already have an account */}
-          <div className="text-center mt-8">
-            <button
-              onClick={() => router.push('/login')}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Already have an account? <span className="underline">Sign in</span>
-            </button>
           </div>
         </div>
 
