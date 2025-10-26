@@ -11,11 +11,20 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
  */
 export function createServerSupabaseClient() {
   console.log('Creating server client with service role key');
+  console.log('Service key length:', supabaseServiceKey?.length);
+  console.log('Service key starts with:', supabaseServiceKey?.substring(0, 20));
   
   if (!supabaseServiceKey) {
     console.error('SUPABASE_SERVICE_ROLE_KEY is not set in environment variables');
     throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
   }
+  
+  if (!supabaseUrl) {
+    console.error('NEXT_PUBLIC_SUPABASE_URL is not set in environment variables');
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not configured');
+  }
+  
+  console.log('Supabase URL:', supabaseUrl);
   
   const client = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
