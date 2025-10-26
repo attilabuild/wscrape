@@ -12,6 +12,7 @@ interface VideoData {
   comments?: number;
   shares?: number;
   engagementRate?: number;
+  hashtags?: string[] | string;
 }
 
 interface AIAnalysis {
