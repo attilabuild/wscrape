@@ -691,29 +691,51 @@ export default function Tools({
                   emptyStateDescription="Generate some AI content ideas to get started."
                   onSaveContent={async (content) => {
                     try {
-                      const { data: { user } } = await (await import('@/lib/supabase')).supabase.auth.getUser();
-                      if (!user) return;
+                      const { data: { user }, error: authError } = await (await import('@/lib/supabase')).supabase.auth.getUser();
+                      if (!user) {
+                        alert('Please log in to save content');
+                        return;
+                      }
 
-                      const { error } = await (await import('@/lib/supabase')).supabase
-                        .from('contents')
-                        .insert({
-                          user_id: user.id,
-                          hook: content.hook,
-                          caption: content.caption,
-                          transcript: content.fullContent || content.caption,
-                          content_type: content.contentType || 'generated',
-                          hashtags: content.hashtags || [],
-                          viral_score: content.viralScore || 0,
-                          platform: 'ai-generated',
-                          username: 'ai_generated'
-                        });
+                      // Get the auth token
+                      const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+                      const token = session?.access_token;
 
-                      if (error) throw error;
+                      if (!token) {
+                        alert('Please log in to save content');
+                        return;
+                      }
+
+                      // Use the content API endpoint with auth
+                      const response = await fetch('/api/content', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                          action: 'add',
+                          payload: {
+                            hook: content.hook,
+                            caption: content.caption,
+                            transcript: content.fullContent || content.caption,
+                            username: 'ai_generated',
+                            contentType: content.contentType || 'generated',
+                            hashtags: Array.isArray(content.hashtags) ? content.hashtags : (content.hashtags || [])
+                          }
+                        })
+                      });
+
+                      if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to save content');
+                      }
                       
                       alert('✅ Content saved to library! Go to Contents tab to view it.');
 
                     } catch (error: any) {
-                      alert('❌ Failed to save content');
+                      console.error('Save content error:', error);
+                      alert('❌ Failed to save content: ' + error.message);
                     }
                   }}
                 />
