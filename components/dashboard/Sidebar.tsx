@@ -25,12 +25,28 @@ export default function Sidebar({
   setSidebarOpen
 }: SidebarProps) {
   const [userEmail, setUserEmail] = useState<string>('');
+  const [planName, setPlanName] = useState<string>('Free Plan');
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) {
         setUserEmail(user.email);
+        
+        // Fetch subscription status
+        const { data: subscription } = await supabase
+          .from('user_subscriptions')
+          .select('premium_access, stripe_status')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (subscription?.premium_access) {
+          setPlanName('Premium');
+        } else if (subscription?.stripe_status === 'active') {
+          setPlanName('Pro Plan');
+        } else {
+          setPlanName('Free Plan');
+        }
       }
     };
     getUser();
@@ -238,7 +254,7 @@ export default function Sidebar({
             </div>
             <div className="text-left flex-1 min-w-0">
               <div className="text-sm font-medium text-white truncate">{userEmail || 'Loading...'}</div>
-              <div className="text-xs text-gray-400">Free Plan</div>
+              <div className="text-xs text-gray-400">{planName}</div>
             </div>
           </button>
         </div>
