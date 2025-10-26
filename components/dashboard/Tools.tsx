@@ -1030,6 +1030,70 @@ export default function Tools({
                       >
                         Copy
                       </button>
+                      <button
+                          onClick={async () => {
+                            console.log('Save comment clicked!', comment);
+                            try {
+                              const { data: { user }, error: authError } = await (await import('@/lib/supabase')).supabase.auth.getUser();
+                              if (!user) {
+                                alert('Please log in to save content');
+                                return;
+                              }
+                              console.log('User authenticated:', user.id);
+
+                              // Get the auth token
+                              const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+                              const token = session?.access_token;
+
+                              if (!token) {
+                                alert('Please log in to save content');
+                                return;
+                              }
+                              console.log('Token retrieved');
+
+                              // Use the content API endpoint with auth
+                              console.log('Saving comment to API...');
+                              const response = await fetch('/api/content', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                  action: 'add',
+                                  payload: {
+                                    hook: comment.text.substring(0, 100),
+                                    caption: comment.text,
+                                    transcript: comment.text,
+                                    username: comment.ownerUsername || 'unknown',
+                                    contentType: 'comment',
+                                    views: 0,
+                                    likes: comment.likesCount || 0,
+                                    engagementRate: 0,
+                                    postUrl: lastScrapedPost,
+                                    hashtags: []
+                                  }
+                                })
+                              });
+
+                              console.log('API response:', response.status);
+                              if (!response.ok) {
+                                const errorData = await response.json();
+                                console.error('API error:', errorData);
+                                throw new Error(errorData.error || 'Failed to save comment');
+                              }
+                              
+                              console.log('Comment saved successfully!');
+                              alert('✅ Comment saved to library! Go to Contents tab to view it.');
+                            } catch (error: any) {
+                              console.error('Save comment error:', error);
+                              alert('❌ Failed to save comment: ' + (error.message || 'Unknown error'));
+                            }
+                          }}
+                        className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded hover:bg-green-500/30"
+                      >
+                        💾 Save
+                      </button>
                     </div>
                   </div>
                     <p className="text-gray-300 text-sm">{comment.text}</p>
