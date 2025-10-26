@@ -130,9 +130,16 @@ export default function Contents({
     try {
       setAnalyzingContent('all');
       
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
       const response = await fetch('/api/ai-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: JSON.stringify({
           action: 'analyze_content',
           payload: {
@@ -187,9 +194,16 @@ export default function Contents({
     try {
       setGeneratingSimilar('all');
       
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
       const response = await fetch('/api/ai-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: JSON.stringify({
           action: 'generate_suggestions',
           payload: {
