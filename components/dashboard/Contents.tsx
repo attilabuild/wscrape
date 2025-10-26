@@ -159,23 +159,34 @@ export default function Contents({
       });
 
       const result = await response.json();
+      console.log('Analysis result:', result);
+      
       if (result.success) {
         setAnalysisResults({ all: result.data });
         
         // Show modal with analysis
         const analysis = result.data.analysis;
         const metrics = result.data.metrics;
+        
+        console.log('Analysis:', analysis);
+        console.log('Metrics:', metrics);
+        
         setAnalysisData({
           contentCount: dbContent.length,
-          overallScore: analysis.overallScore,
-          viralPotential: analysis.viralPotential,
+          overallScore: analysis?.overallScore || 0,
+          viralPotential: analysis?.viralPotential || 'Low',
           avgViews: metrics?.performanceMetrics?.avgViews || 'N/A',
           avgEngagement: metrics?.performanceMetrics?.avgEngagement?.toFixed(1) || '0',
           viralRate: metrics?.performanceMetrics?.viralRate || '0',
-          strengths: analysis.performanceAnalysis?.whatsWorking?.slice(0, 3) || analysis.contentStrategy?.strengths?.slice(0, 3) || ['Good engagement'],
-          improvements: analysis.performanceAnalysis?.whatsFailing?.slice(0, 3) || analysis.contentStrategy?.weaknesses?.slice(0, 3) || ['Keep up the good work!']
+          strengths: analysis?.performanceAnalysis?.whatsWorking?.slice(0, 3) || analysis?.contentStrategy?.strengths?.slice(0, 3) || ['Good engagement'],
+          improvements: analysis?.performanceAnalysis?.whatsFailing?.slice(0, 3) || analysis?.contentStrategy?.weaknesses?.slice(0, 3) || ['Keep up the good work!']
         });
+        
+        console.log('Showing analysis modal');
         setShowAnalysisModal(true);
+      } else {
+        console.error('Analysis failed:', result.error);
+        alert('Failed to analyze content: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       alert('Failed to analyze content. Please try again.');
