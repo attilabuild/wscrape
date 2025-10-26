@@ -28,11 +28,13 @@ export async function verifyActiveSubscription(userId: string): Promise<Subscrip
       .single();
 
     if (error || !subscription) {
+      console.log('Subscription check failed:', { error, hasSubscription: !!subscription });
       return { isActive: false };
     }
 
     // Check if user has manual premium access (granted without subscription)
     if (subscription.premium_access === true) {
+      console.log('User has premium_access:', subscription);
       return {
         isActive: true,
         status: 'premium',
@@ -49,6 +51,8 @@ export async function verifyActiveSubscription(userId: string): Promise<Subscrip
       : false;
 
     const isActive = isActiveStatus && notExpired;
+    
+    console.log('Subscription status check:', { isActive, stripe_status: subscription.stripe_status, notExpired, premium_access: subscription.premium_access });
 
     return {
       isActive,
@@ -56,6 +60,7 @@ export async function verifyActiveSubscription(userId: string): Promise<Subscrip
       periodEnd: subscription.current_period_end,
     };
   } catch (error) {
+    console.log('Error in subscription check:', error);
     return { isActive: false };
   }
 }
@@ -80,11 +85,12 @@ export async function requireActiveSubscription(userId: string | null): Promise<
 
   // Verify subscription
   const subscription = await verifyActiveSubscription(userId);
-
+  
+  // Debug: Log subscription check result
   if (!subscription.isActive) {
     return {
       authorized: false,
-      error: 'Active subscription required. Please subscribe at /pricing',
+      error: subscription.status ? `Subscription status: ${subscription.status}. Please subscribe at /pricing` : 'Active subscription required. Please subscribe at /pricing',
       status: 403, // Forbidden
     };
   }
