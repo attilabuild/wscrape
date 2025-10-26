@@ -472,9 +472,16 @@ export default function Contents({
               e.preventDefault();
               setSubmitLoading(true);
               try {
+                // Get auth token for the request
+                const { data: { session } } = await supabase.auth.getSession();
+                const token = session?.access_token;
+                
                 const res = await fetch('/api/content', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  },
                   body: JSON.stringify({
                     action: 'add',
                     payload: {
