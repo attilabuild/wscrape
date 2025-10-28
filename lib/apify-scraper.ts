@@ -173,21 +173,30 @@ export class ApifyScraper {
               .filter(item => item.createTime) // Filter out items without timestamps
               .sort((a, b) => parseInt(String(b.createTime)) - parseInt(String(a.createTime)));
             
-            return sortedTikTokItems.slice(0, this.config.count).map((item: any, index: number) => ({
-              id: item.id || `${Math.floor(Math.random() * 9000000000000000000) + 1000000000000000000}`,
-              caption: item.desc || item.text || item.description || 'No caption available',
-              postUrl: `https://tiktok.com/@${this.config.username}/video/${item.id}`,
-              hook: this.extractHook(item.desc || item.text || item.description || ''),
-              transcript: this.generateTranscript(item.desc || item.text || item.description || ''),
-              views: item.stats?.playCount || item.playCount || 0,
-              likes: item.stats?.diggCount || item.diggCount || 0,
-              uploadDate: item.createTime ? new Date(parseInt(item.createTime) * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-              thumbnail: item.video?.cover || item.video?.originCover || item.cover || '',
-              username: this.config.username,
-              duration: item.video?.duration || 0,
-              comments: item.stats?.commentCount || item.commentCount || 0,
-              shares: item.stats?.shareCount || item.shareCount || 0
-            }));
+            return sortedTikTokItems.slice(0, this.config.count).map((item: any, index: number) => {
+              const caption = item.desc || item.text || item.description || '';
+              const views = item.stats?.playCount || item.playCount || item.videoViewCount || 0;
+              const likes = item.stats?.diggCount || item.diggCount || item.likesCount || 0;
+              const comments = item.stats?.commentCount || item.commentCount || 0;
+              const shares = item.stats?.shareCount || item.shareCount || 0;
+              
+              return {
+                id: item.id || `tiktok_${Date.now()}_${index}`,
+                caption: caption || 'No caption available',
+                postUrl: `https://tiktok.com/@${this.config.username}/video/${item.id}`,
+                hook: this.extractHook(caption),
+                transcript: this.generateTranscript(caption),
+                views: views,
+                likes: likes,
+                uploadDate: item.createTime ? new Date(parseInt(item.createTime) * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                thumbnail: item.video?.cover || item.video?.originCover || item.cover || '',
+                username: this.config.username,
+                duration: item.video?.duration || 0,
+                comments: comments,
+                shares: shares,
+                engagementRate: views > 0 ? ((likes + comments + shares) / views) * 100 : 0
+              };
+            });
           }
       
           // If we have profile data but no individual videos, check if profile matches
@@ -220,21 +229,30 @@ export class ApifyScraper {
               .filter(item => item.createTime) // Filter out items without timestamps
               .sort((a, b) => parseInt(String(b.createTime)) - parseInt(String(a.createTime)));
             
-            return sortedItemListItems.slice(0, this.config.count).map((item: any, index: number) => ({
-              id: item.id || `${Math.floor(Math.random() * 9000000000000000000) + 1000000000000000000}`,
-              caption: item.desc || item.text || item.description || 'No caption available',
-              postUrl: `https://tiktok.com/@${this.config.username}/video/${item.id}`,
-              hook: this.extractHook(item.desc || item.text || item.description || ''),
-              transcript: this.generateTranscript(item.desc || item.text || item.description || ''),
-              views: item.stats?.playCount || item.playCount || 0,
-              likes: item.stats?.diggCount || item.diggCount || 0,
-              uploadDate: item.createTime ? new Date(parseInt(item.createTime) * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-              thumbnail: item.video?.cover || item.video?.originCover || item.cover || '',
-              username: this.config.username,
-              duration: item.video?.duration || 0,
-              comments: item.stats?.commentCount || item.commentCount || 0,
-              shares: item.stats?.shareCount || item.shareCount || 0
-            }));
+            return sortedItemListItems.slice(0, this.config.count).map((item: any, index: number) => {
+              const caption = item.desc || item.text || item.description || '';
+              const views = item.stats?.playCount || item.playCount || item.videoViewCount || 0;
+              const likes = item.stats?.diggCount || item.diggCount || item.likesCount || 0;
+              const comments = item.stats?.commentCount || item.commentCount || 0;
+              const shares = item.stats?.shareCount || item.shareCount || 0;
+              
+              return {
+                id: item.id || `tiktok_${Date.now()}_${index}`,
+                caption: caption || 'No caption available',
+                postUrl: `https://tiktok.com/@${this.config.username}/video/${item.id}`,
+                hook: this.extractHook(caption),
+                transcript: this.generateTranscript(caption),
+                views: views,
+                likes: likes,
+                uploadDate: item.createTime ? new Date(parseInt(item.createTime) * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                thumbnail: item.video?.cover || item.video?.originCover || item.cover || '',
+                username: this.config.username,
+                duration: item.video?.duration || 0,
+                comments: comments,
+                shares: shares,
+                engagementRate: views > 0 ? ((likes + comments + shares) / views) * 100 : 0
+              };
+            });
           }
         } catch (actorError) {
           
@@ -403,11 +421,33 @@ export class ApifyScraper {
   }
 
   private extractHook(text: string): string {
-    // Extract the first sentence or first 50 characters as hook
-    const firstSentence = text.split('.')[0];
-    const firstLine = text.split('\n')[0];
-    const hook = firstSentence.length > 50 ? firstLine.substring(0, 50) + '...' : firstSentence;
-    return hook || 'No hook available';
+    if (!text || text.trim().length === 0) {
+      return 'No caption available';
+    }
+    
+    // Clean the text
+    const cleanText = text.trim();
+    
+    // Try different extraction methods
+    const firstSentence = cleanText.split('.')[0];
+    const firstLine = cleanText.split('\n')[0];
+    const firstHashtag = cleanText.split('#')[0];
+    
+    // Use the longest meaningful segment
+    let hook = firstLine;
+    if (firstSentence.length > firstLine.length && firstSentence.length < 100) {
+      hook = firstSentence;
+    }
+    if (firstHashtag.length > hook.length && firstHashtag.length < 100) {
+      hook = firstHashtag;
+    }
+    
+    // Truncate if too long
+    if (hook.length > 80) {
+      hook = hook.substring(0, 77) + '...';
+    }
+    
+    return hook.trim() || cleanText.substring(0, 50) || 'No caption available';
   }
 
   private generateTranscript(text: string): string {
