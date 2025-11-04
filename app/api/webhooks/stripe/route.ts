@@ -167,7 +167,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 async function saveSubscriptionFromCheckout(session: Stripe.Checkout.Session, userId: string) {
   const supabase = createServerSupabaseClient();
 
-  // Handle subscription mode (recurring payments)g
+  // Handle subscription mode (recurring payments)
   if (session.mode === 'subscription' && session.subscription) {
     try {
       console.log(`📋 Retrieving subscription ${session.subscription} for user ${userId}`);

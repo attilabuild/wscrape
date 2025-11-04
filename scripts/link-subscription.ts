@@ -18,8 +18,8 @@ async function linkSubscription(userId: string, subscriptionId: string) {
     });
 
     const customerId = subscription.customer as string;
-    const periodStart = subscription.current_period_start;
-    const periodEnd = subscription.current_period_end;
+    const periodStart = (subscription as any).current_period_start;
+    const periodEnd = (subscription as any).current_period_end;
 
     console.log(`📋 Subscription details:`, {
       customerId,
