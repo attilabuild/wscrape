@@ -16,8 +16,20 @@ export async function POST(request: NextRequest) {
     const customerId = await getOrCreateStripeCustomer(user.id, user.email!);
 
     // Get the correct app URL (ensure HTTPS and www)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.wscrape.com';
+    // Default to https://www.wscrape.com if not set
+    let appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.wscrape.com';
+    
+    // Ensure HTTPS and www
+    if (!appUrl.startsWith('https://')) {
+      appUrl = appUrl.replace(/^http:\/\//, 'https://');
+    }
+    if (!appUrl.includes('www.')) {
+      appUrl = appUrl.replace(/https:\/\/([^\/]+)/, 'https://www.$1');
+    }
+    
     const baseUrl = appUrl.replace(/\/$/, ''); // Remove trailing slash
+    
+    console.log(`🔗 Creating checkout session with baseUrl: ${baseUrl}`);
     
     // Create checkout session
     const session = await stripe.checkout.sessions.create({

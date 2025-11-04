@@ -38,10 +38,12 @@ export default function Dashboard() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
+    const sessionId = urlParams.get('session_id');
     
-    if (success === 'true') {
+    // Show success message if coming from Stripe checkout (success=true or has session_id)
+    if (success === 'true' || sessionId) {
       setShowSuccessMessage(true);
-      // Remove the query parameter from URL
+      // Remove the query parameters from URL
       window.history.replaceState({}, '', '/dashboard');
       // Hide success message after 5 seconds
       setTimeout(() => setShowSuccessMessage(false), 5000);

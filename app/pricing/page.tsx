@@ -16,10 +16,13 @@ export default function PricingPage() {
       const urlParams = new URLSearchParams(window.location.search);
       const canceled = urlParams.get('canceled');
       const success = urlParams.get('success');
+      const sessionId = urlParams.get('session_id');
       
       // If payment was successful, redirect to dashboard immediately
       // (webhook will handle the subscription update in the background)
-      if (success === 'true') {
+      if (success === 'true' || sessionId) {
+        // Remove query params and redirect to dashboard
+        window.history.replaceState({}, '', '/dashboard');
         router.push('/dashboard?success=true');
         return;
       }
