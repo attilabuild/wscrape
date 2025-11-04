@@ -238,62 +238,109 @@ export default function Tools({
                 emptyStateTitle="No Videos Found"
                 emptyStateDescription={`No recent videos found for @${lastScrapedUser} on ${selectedPlatform}. Try a different handle or switch platform.`}
                 onSaveContent={async (content) => {
-                  console.log('Save content clicked!', content);
+                  console.log('🔵 Save content handler called!', content);
+                  console.log('🔵 Handler context:', { contentKeys: Object.keys(content || {}), hasContent: !!content });
+                  
                   try {
-                    const { data: { user }, error: authError } = await (await import('@/lib/supabase')).supabase.auth.getUser();
-                    if (!user) {
-                      alert('Please log in to save content');
-                      return;
+                    console.log('🔵 Step 0.1: Starting save process...');
+                    
+                    // Get session for auth token
+                    console.log('🔵 Step 0.2: Importing supabase...');
+                    let supabase;
+                    try {
+                      const supabaseModule = await import('@/lib/supabase');
+                      supabase = supabaseModule.supabase;
+                      console.log('🔵 Step 0.3: Supabase imported successfully');
+                    } catch (importError) {
+                      console.error('❌ Failed to import supabase:', importError);
+                      throw new Error('Failed to load authentication: ' + (importError instanceof Error ? importError.message : 'Unknown error'));
                     }
-                    console.log('User authenticated:', user.id);
-
-                    // Get the auth token
-                    const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+                    
+                    console.log('🔵 Step 0.4: Getting session...');
+                    let session;
+                    try {
+                      const sessionResult = await supabase.auth.getSession();
+                      session = sessionResult.data?.session;
+                      console.log('🔵 Step 0.5: Session retrieved:', { hasSession: !!session, hasAccessToken: !!session?.access_token });
+                    } catch (sessionError) {
+                      console.error('❌ Failed to get session:', sessionError);
+                      throw new Error('Failed to get session: ' + (sessionError instanceof Error ? sessionError.message : 'Unknown error'));
+                    }
+                    
                     const token = session?.access_token;
-
+                    
                     if (!token) {
+                      console.error('❌ No auth token found');
                       alert('Please log in to save content');
                       return;
                     }
-                    console.log('Token retrieved');
-
-                    // Use the content API endpoint with auth
-                    console.log('Saving content to API...');
-                    const response = await fetch('/api/content', {
+                    
+                    console.log('🔵 Step 1: Got auth token, calling API...');
+                    
+                    const payload = {
+                      username: content.username || lastScrapedUser,
+                      caption: content.caption || content.fullContent || '',
+                      hook: content.hook || '',
+                      transcript: content.transcript || content.caption || content.hook || '',
+                      views: content.views || 0,
+                      likes: content.likes || 0,
+                      engagementRate: content.engagementRate || 
+                        (content.views && content.likes ? ((content.likes / content.views) * 100) : 0),
+                      uploadDate: content.uploadDate || new Date().toISOString().split('T')[0],
+                      contentType: content.contentType || selectedPlatform,
+                      postUrl: content.postUrl || '',
+                      viralScore: content.viralScore || 
+                        Math.round((content.engagementRate || 0) * 0.4 + 
+                        ((content.views || 0) > 1000000 ? 30 : 10) + 
+                        ((content.likes || 0) > 100000 ? 20 : 5)),
+                      hashtags: content.hashtags || [],
+                      platform: content.contentType || selectedPlatform
+                    };
+                    
+                    console.log('🔵 Step 2: Sending payload:', { 
+                      username: payload.username, 
+                      hook: payload.hook?.substring(0, 50),
+                      hasToken: !!token 
+                    });
+                    
+                    // Use server-side API endpoint (more reliable)
+                    const response = await fetch('/api/content/save', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                       },
-                      body: JSON.stringify({
-                        action: 'add',
-                        payload: {
-                          hook: content.hook,
-                          caption: content.caption || content.fullContent,
-                          transcript: content.transcript || content.caption || content.hook,
-                          username: content.username || lastScrapedUser,
-                          contentType: content.contentType || selectedPlatform,
-                          views: content.views || 0,
-                          likes: content.likes || 0,
-                          engagementRate: content.engagementRate || 0,
-                          postUrl: content.postUrl,
-                          hashtags: content.hashtags || []
-                        }
-                      })
+                      body: JSON.stringify(payload)
                     });
 
-                    console.log('API response:', response.status);
-                    if (!response.ok) {
-                      const errorData = await response.json();
-                      console.error('API error:', errorData);
-                      throw new Error(errorData.error || 'Failed to save content');
+                    console.log('🔵 Step 3: Response status:', response.status, response.statusText);
+                    
+                    let result;
+                    try {
+                      result = await response.json();
+                      console.log('🔵 Step 4: Response data:', result);
+                    } catch (parseError) {
+                      console.error('❌ Failed to parse response:', parseError);
+                      const text = await response.text();
+                      console.error('❌ Response text:', text);
+                      throw new Error(`Server error (${response.status}): ${text.substring(0, 100)}`);
                     }
                     
-                    console.log('Content saved successfully!');
+                    if (!response.ok) {
+                      console.error('❌ API error response:', result);
+                      throw new Error(result.error || `Failed to save content (${response.status})`);
+                    }
+                    
+                    console.log('✅ Content saved successfully!', result);
                     alert('✅ Content saved to library! Go to Contents tab to view it.');
                   } catch (error: any) {
-                    console.error('Save content error:', error);
-                    alert('❌ Failed to save content: ' + (error.message || 'Unknown error'));
+                    console.error('❌ Save content error:', error);
+                    console.error('❌ Error stack:', error?.stack);
+                    console.error('❌ Error name:', error?.name);
+                    console.error('❌ Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+                    const errorMessage = error?.message || error?.toString() || 'Unknown error';
+                    console.error('❌ Full error details:', error);
+                    alert('❌ Failed to save content: ' + errorMessage);
                   }
                 }}
               />
@@ -718,44 +765,38 @@ export default function Tools({
                   emptyStateDescription="Generate some AI content ideas to get started."
                   onSaveContent={async (content) => {
                     try {
-                      const { data: { user }, error: authError } = await (await import('@/lib/supabase')).supabase.auth.getUser();
+                      const { supabase } = await import('@/lib/supabase');
+                      const { data: { user } } = await supabase.auth.getUser();
+                      
                       if (!user) {
                         alert('Please log in to save content');
                         return;
                       }
 
-                      // Get the auth token
-                      const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
-                      const token = session?.access_token;
+                      // Save directly to Supabase (only columns that exist)
+                      // Note: upload_date column doesn't exist, Supabase will use created_at automatically
+                      const { error } = await supabase
+                        .from('contents')
+                        .insert({
+                          user_id: user.id,
+                          username: 'AI Generated',
+                          caption: content.caption || content.fullContent || '',
+                          hook: content.hook || '',
+                          transcript: content.transcript || content.fullContent || content.caption || '',
+                          views: content.views || 0,
+                          likes: content.likes || 0,
+                          engagement_rate: content.engagementRate || 0,
+                          // upload_date column doesn't exist - using created_at instead (auto-generated)
+                          content_type: content.contentType || 'generated',
+                          post_url: content.postUrl || '',
+                          viral_score: content.viralScore || content.expectedEngagement || 75,
+                          hashtags: Array.isArray(content.hashtags) ? content.hashtags : (typeof content.hashtags === 'string' ? (content.hashtags as string).split(',').map((h: string) => h.trim()) : []),
+                          platform: selectedPlatform
+                        });
 
-                      if (!token) {
-                        alert('Please log in to save content');
-                        return;
-                      }
-
-                      // Use the content API endpoint with auth
-                      const response = await fetch('/api/content', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({
-                          action: 'add',
-                          payload: {
-                            hook: content.hook,
-                            caption: content.caption,
-                            transcript: content.fullContent || content.caption,
-                            username: 'ai_generated',
-                            contentType: content.contentType || 'generated',
-                            hashtags: Array.isArray(content.hashtags) ? content.hashtags : (content.hashtags || [])
-                          }
-                        })
-                      });
-
-                      if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Failed to save content');
+                      if (error) {
+                        console.error('Supabase error:', error);
+                        throw error;
                       }
                       
                       alert('✅ Content saved to library! Go to Contents tab to view it.');

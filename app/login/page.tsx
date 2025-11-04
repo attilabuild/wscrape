@@ -35,8 +35,8 @@ export default function LoginPage() {
   };
 
   const signInWithGoogle = async () => {
-    // Use environment variable for production, fallback to origin for local dev
-    const redirectUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    // Always use current origin to ensure localhost works correctly
+    const redirectUrl = window.location.origin;
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

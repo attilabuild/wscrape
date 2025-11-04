@@ -31,6 +31,12 @@ export async function POST(request: NextRequest) {
     const body: ContentRequest = await request.json();
     const { action, filters = {}, payload } = body;
 
+    if (!action) {
+      return NextResponse.json(
+        { error: 'Action is required. Use: get_all, get_by_niche, get_by_creator, search, add' },
+        { status: 400 }
+      );
+    }
 
     const database = new ViralDatabase();
     await database.initialize();
@@ -59,11 +65,20 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
+    console.error('Content API error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to retrieve content' },
       { status: 500 }
     );
   }
+}
+
+// Handle GET requests as well (return 405 Method Not Allowed)
+export async function GET() {
+  return NextResponse.json(
+    { error: 'Method not allowed. Use POST with an action parameter.' },
+    { status: 405 }
+  );
 }
 /**
  * Add a manual content entry

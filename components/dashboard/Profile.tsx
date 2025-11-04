@@ -29,7 +29,8 @@ export default function Profile({
   
   useEffect(() => {
     const loadUserProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       setUser(user);
       
       if (user) {

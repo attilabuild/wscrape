@@ -64,6 +64,12 @@ export async function POST(request: NextRequest) {
     const body: ProfileRequest = await request.json();
     const { action, profileData } = body;
 
+    if (!action) {
+      return NextResponse.json(
+        { error: 'Action is required. Use: get, save, update, delete' },
+        { status: 400 }
+      );
+    }
 
     switch (action) {
       case 'get':
@@ -86,11 +92,20 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
+    console.error('Profile API error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to process profile request' },
       { status: 500 }
     );
   }
+}
+
+// Handle GET requests as well (return 405 Method Not Allowed)
+export async function GET() {
+  return NextResponse.json(
+    { error: 'Method not allowed. Use POST with an action parameter.' },
+    { status: 405 }
+  );
 }
 
 /**

@@ -85,27 +85,24 @@ export class ApifyScraper {
       };
       const requestedUsernameNormalized = normalize(this.config.username);
 
-      // Try multiple Apify actors to get real TikTok data
+      // Use the thenetaji/tiktok-scraper actor (primary, most reliable)
+      // This actor supports both profile URLs and video URLs automatically
       const actors = [
-        'thenetaji/tiktok-scraper', // The better TikTok scraper from Apify Store
-        'apify/tiktok-scraper', // Official Apify TikTok scraper (if exists)
-        'apify/tiktok-scraper-v2', // Alternative TikTok scraper
-        '763fjhW8IV6xMgJEC' // Fallback to old actor ID
+        'thenetaji/tiktok-scraper', // Primary: The better TikTok scraper from Apify Store
+        'apify/tiktok-scraper', // Fallback: Official Apify TikTok scraper
       ];
       
       for (const actorId of actors) {
         try {
+          console.log(`🎬 Trying TikTok scraper: ${actorId} for @${this.config.username}`);
           
+          // Use the proper input format for thenetaji/tiktok-scraper
           const run = await this.client.actor(actorId).call({
             startUrls: [{ url: `https://www.tiktok.com/@${this.config.username}` }],
-            // Enhanced parameters for better TikTok scraping
-            resultsLimit: Math.max(this.config.count, 50),
+            // Core parameters
             maxItems: Math.max(this.config.count, 50),
             maxItemsPerStartUrl: Math.max(this.config.count, 50),
-            // TikTok-specific parameters for better results
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            sortBy: 'date',
-            timeout: 60000, // Increased timeout for better success rate
+            // Performance settings
             maxRequestRetries: 5,
             requestDelay: 2000, // Slower requests to avoid rate limiting
             maxConcurrency: 1,
@@ -114,11 +111,10 @@ export class ApifyScraper {
               useApifyProxy: true,
               apifyProxyGroups: ['RESIDENTIAL']
             },
-            // Additional TikTok scraper options
-            includeUserInfo: true,
-            includeVideoStats: true,
-            includeComments: false, // We'll get comments separately
-            maxCommentsPerVideo: 0
+            // Additional settings for better results
+            timeout: 60000,
+            // Note: thenetaji/tiktok-scraper automatically detects profile vs post URLs
+            // and extracts both profile info and video list when given a profile URL
           });
 
           
@@ -131,87 +127,255 @@ export class ApifyScraper {
             continue;
           }
 
+          console.log(`📊 Got ${items.length} items from ${actorId}`);
+          
           // Check if we have individual video items or profile data
           const firstItem = items[0];
+          console.log(`🔍 First item structure (first 500 chars):`, JSON.stringify(firstItem, null, 2).substring(0, 500));
+          console.log(`🔍 First item keys:`, Object.keys(firstItem || {}));
+          
+          // Handle thenetaji/tiktok-scraper output format
+          // Based on logs, it can return:
+          // 1. Profile data objects with userId, uniqueId, followers, etc. (when scraping profiles)
+          // 2. Individual video items with videoId, description, createTime, etc. (when scraping videos)
+          // 3. Profile data with nested video lists
+          
+          // First, check if any items are actually video items (not profile data)
+          const videoItems = items.filter((item: any) => {
+            // Check if it's a video item (has videoId or id with description/caption)
+            return (item.videoId || (item.id && (item.description || item.desc || item.text))) &&
+                   !item.userId && // Not a profile object
+                   !item.followers; // Not a profile object
+          });
+          
+          if (videoItems.length > 0) {
+            console.log(`✅ Found ${videoItems.length} video items (not profile data)`);
+          }
       
           // If we have individual video items (not profile data)
-          if (firstItem.id && firstItem.desc !== undefined) {
+          // Check for videoId (thenetaji format) or id (other formats)
+          if (videoItems.length > 0 || ((firstItem.videoId || firstItem.id) && (firstItem.description !== undefined || firstItem.desc !== undefined))) {
+            const itemsToProcess = videoItems.length > 0 ? videoItems : items;
             
-                // Filter videos to only include those from the requested username
-                const filteredItems = items.filter((item: any) => {
-                  const authorUsername = item.author?.uniqueId || item.author?.nickname || '';
-                  const itemUsernameNormalized = normalize(authorUsername);
-                  return itemUsernameNormalized === requestedUsernameNormalized;
-                });
+            // Filter videos to only include those from the requested username
+            // Handle both thenetaji format (authorUsername) and other formats (author.uniqueId)
+            const filteredItems = itemsToProcess.filter((item: any) => {
+              const authorUsername = item.authorUsername || 
+                                     item.author?.uniqueId || 
+                                     item.author?.nickname || 
+                                     item.authorUniqueId ||
+                                     item.uniqueId || 
+                                     '';
+              const itemUsernameNormalized = normalize(authorUsername);
+              const matches = itemUsernameNormalized === requestedUsernameNormalized;
+              if (!matches && authorUsername) {
+                console.log(`   Skipping item from @${authorUsername} (normalized: ${itemUsernameNormalized})`);
+              }
+              return matches;
+            });
             
             if (filteredItems.length === 0) {
+              console.log(`⚠️ No videos found for @${this.config.username} in filtered results`);
+              console.log(`   Total items: ${itemsToProcess.length}, Requested username: ${this.config.username}`);
               
-              // If this is the last actor and we have some videos, use them anyway
-              if (actorId === actors[actors.length - 1] && items.length > 0) {
-                const fallbackItems = items.slice(0, this.config.count);
-                return fallbackItems.map((item: any, index: number) => ({
-                  id: item.id || `${Math.floor(Math.random() * 9000000000000000000) + 1000000000000000000}`,
-                  caption: item.desc || item.text || item.description || 'No caption available',
-                  postUrl: `https://tiktok.com/@${this.config.username}/video/${item.id}`,
-                  hook: this.extractHook(item.desc || item.text || item.description || ''),
-                  transcript: this.generateTranscript(item.desc || item.text || item.description || ''),
-                  views: item.stats?.playCount || item.playCount || 0,
-                  likes: item.stats?.diggCount || item.diggCount || 0,
-                  uploadDate: item.createTime ? new Date(parseInt(item.createTime) * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                  thumbnail: item.video?.cover || item.video?.originCover || item.cover || '',
-                  username: this.config.username,
-                  duration: item.video?.duration || 0,
-                  comments: item.stats?.commentCount || item.commentCount || 0,
-                  shares: item.stats?.shareCount || item.shareCount || 0
-                }));
+              // If we have video items but they don't match username, still try to use them
+              // (might be the right user but username field is missing/wrong)
+              if (itemsToProcess.length > 0 && (itemsToProcess[0].videoId || itemsToProcess[0].id)) {
+                console.log(`⚠️ Using all video items anyway (${itemsToProcess.length} items) - username might not be in response`);
+                const fallbackItems = itemsToProcess.slice(0, this.config.count);
+                
+                return fallbackItems.map((item: any, index: number) => {
+                  // Handle thenetaji format: videoId, description, createTime, plays, likes, etc.
+                  const videoId = item.videoId || item.id || `${Math.floor(Math.random() * 9000000000000000000) + 1000000000000000000}`;
+                  const caption = item.description || item.desc || item.text || 'No caption available';
+                  const createTime = item.createTime || item.create_time;
+                  const views = item.plays || item.stats?.playCount || item.playCount || item.videoViewCount || 0;
+                  const likes = item.likes || item.stats?.diggCount || item.diggCount || item.likesCount || 0;
+                  const comments = item.comments || item.stats?.commentCount || item.commentCount || 0;
+                  const shares = item.shares || item.stats?.shareCount || item.shareCount || 0;
+                  
+                  return {
+                    id: videoId,
+                    caption: caption,
+                    postUrl: item.videoUrl || `https://tiktok.com/@${this.config.username}/video/${videoId}`,
+                    hook: this.extractHook(caption),
+                    transcript: this.generateTranscript(caption),
+                    views: views,
+                    likes: likes,
+                    uploadDate: createTime ? (typeof createTime === 'string' ? new Date(createTime).toISOString().split('T')[0] : new Date(parseInt(createTime) * 1000).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+                    thumbnail: item.coverImage || item.video?.cover || item.video?.originCover || item.cover || '',
+                    username: this.config.username,
+                    duration: item.video?.duration || item.duration || 0,
+                    comments: comments,
+                    shares: shares
+                  };
+                });
               }
+              
+              // If this is the last actor and we have some items, check if they're profile data
+              // (will continue to check for profile data format below)
+              if (actorId !== actors[actors.length - 1]) {
+                continue;
+              }
+            } else {
+              console.log(`✅ Found ${filteredItems.length} videos for @${this.config.username}`);
+              
+              // Sort TikTok videos by createTime (latest first)
+              // Handle both string timestamps and Unix timestamps
+              const sortedTikTokItems = filteredItems
+                .filter((item: any) => item.createTime || item.create_time) // Filter out items without timestamps
+                .sort((a: any, b: any) => {
+                  const timeA = a.createTime || a.create_time;
+                  const timeB = b.createTime || b.create_time;
+                  const timestampA = typeof timeA === 'string' ? new Date(timeA).getTime() : parseInt(String(timeA)) * 1000;
+                  const timestampB = typeof timeB === 'string' ? new Date(timeB).getTime() : parseInt(String(timeB)) * 1000;
+                  return timestampB - timestampA; // Latest first
+                });
+              
+              return sortedTikTokItems.slice(0, this.config.count).map((item: any, index: number) => {
+                // Handle thenetaji format: description, createTime, plays, likes, comments, shares
+                const videoId = item.videoId || item.id || `tiktok_${Date.now()}_${index}`;
+                const caption = item.description || item.desc || item.text || 'No caption available';
+                const createTime = item.createTime || item.create_time;
+                const views = item.plays || item.stats?.playCount || item.playCount || item.videoViewCount || 0;
+                const likes = item.likes || item.stats?.diggCount || item.diggCount || item.likesCount || 0;
+                const comments = item.comments || item.stats?.commentCount || item.commentCount || 0;
+                const shares = item.shares || item.stats?.shareCount || item.shareCount || 0;
+                
+                return {
+                  id: videoId,
+                  caption: caption || 'No caption available',
+                  postUrl: item.videoUrl || `https://tiktok.com/@${this.config.username}/video/${videoId}`,
+                  hook: this.extractHook(caption),
+                  transcript: this.generateTranscript(caption),
+                  views: views,
+                  likes: likes,
+                  uploadDate: createTime ? (typeof createTime === 'string' ? new Date(createTime).toISOString().split('T')[0] : new Date(parseInt(createTime) * 1000).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+                  thumbnail: item.coverImage || item.video?.cover || item.video?.originCover || item.cover || '',
+                  username: this.config.username,
+                  duration: item.video?.duration || item.duration || 0,
+                  comments: comments,
+                  shares: shares,
+                  engagementRate: views > 0 ? ((likes + comments + shares) / views) * 100 : 0
+                };
+              });
+            }
+          }
+      
+          // Check if items are profile data objects that might contain video lists
+          // The thenetaji scraper might return profile objects when scraping profiles
+          if (firstItem.userId || firstItem.uniqueId || firstItem.followers !== undefined) {
+            console.log(`📋 Detected profile data format`);
+            console.log(`   Profile username: ${firstItem.uniqueId || firstItem.userId || 'unknown'}`);
+            
+            // Check if profile matches requested username
+            const profileUsername = String(firstItem.uniqueId || firstItem.userId || '');
+            if (normalize(profileUsername) !== requestedUsernameNormalized) {
+              console.log(`⚠️ Profile username mismatch: ${profileUsername} vs ${this.config.username}`);
               continue;
             }
             
-            // Sort TikTok videos by createTime (latest first)
-            const sortedTikTokItems = filteredItems
-              .filter(item => item.createTime) // Filter out items without timestamps
-              .sort((a, b) => parseInt(String(b.createTime)) - parseInt(String(a.createTime)));
+            // Check for videos in various possible locations
+            let videosFromProfile: any[] = [];
             
-            return sortedTikTokItems.slice(0, this.config.count).map((item: any, index: number) => {
-              const caption = item.desc || item.text || item.description || '';
-              const views = item.stats?.playCount || item.playCount || item.videoViewCount || 0;
-              const likes = item.stats?.diggCount || item.diggCount || item.likesCount || 0;
-              const comments = item.stats?.commentCount || item.commentCount || 0;
-              const shares = item.stats?.shareCount || item.shareCount || 0;
+            // Check itemList (older format)
+            if (firstItem.itemList && Array.isArray(firstItem.itemList) && firstItem.itemList.length > 0) {
+              console.log(`📋 Found ${firstItem.itemList.length} videos in itemList`);
+              videosFromProfile = firstItem.itemList;
+            }
+            // Check if there's a videos array
+            else if (firstItem.videos && Array.isArray(firstItem.videos) && firstItem.videos.length > 0) {
+              console.log(`📋 Found ${firstItem.videos.length} videos in videos array`);
+              videosFromProfile = firstItem.videos;
+            }
+            // Check all items - maybe multiple profile objects each with videos
+            else if (items.length > 1) {
+              console.log(`📋 Checking all ${items.length} items for video data...`);
+              // Look for items that have video data
+              const allVideos: any[] = [];
+              items.forEach((item: any) => {
+                if (item.itemList && Array.isArray(item.itemList)) {
+                  allVideos.push(...item.itemList);
+                } else if (item.videos && Array.isArray(item.videos)) {
+                  allVideos.push(...item.videos);
+                } else if (item.videoId || (item.id && item.description)) {
+                  allVideos.push(item);
+                }
+              });
+              if (allVideos.length > 0) {
+                console.log(`📋 Found ${allVideos.length} videos across all items`);
+                videosFromProfile = allVideos;
+              }
+            }
+            
+            if (videosFromProfile.length === 0) {
+              console.log(`⚠️ Profile found but no videos extracted`);
+              continue;
+            }
+            
+            console.log(`✅ Extracted ${videosFromProfile.length} videos from profile data`);
+            
+            // Filter videos to only include those from the requested username
+            const filteredProfileVideos = videosFromProfile.filter((item: any) => {
+              const authorUsername = item.authorUsername || 
+                                     item.author?.uniqueId || 
+                                     item.author?.nickname ||
+                                     item.authorUniqueId ||
+                                     item.uniqueId || 
+                                     '';
+              const itemUsernameNormalized = normalize(authorUsername);
+              return itemUsernameNormalized === requestedUsernameNormalized || authorUsername === ''; // Include if no username (likely from same profile)
+            });
+            
+            if (filteredProfileVideos.length === 0 && videosFromProfile.length > 0) {
+              console.log(`⚠️ No videos match username filter, using all ${videosFromProfile.length} videos`);
+              // Use all videos if filtering removes everything (username might not be in video data)
+            }
+            
+            const videosToUse = filteredProfileVideos.length > 0 ? filteredProfileVideos : videosFromProfile;
+            
+            // Sort videos by createTime (latest first)
+            const sortedVideos = videosToUse
+              .filter((item: any) => item.createTime || item.create_time)
+              .sort((a, b) => {
+                const timeA = a.createTime || a.create_time;
+                const timeB = b.createTime || b.create_time;
+                const timestampA = typeof timeA === 'string' ? new Date(timeA).getTime() : parseInt(String(timeA)) * 1000;
+                const timestampB = typeof timeB === 'string' ? new Date(timeB).getTime() : parseInt(String(timeB)) * 1000;
+                return timestampB - timestampA; // Latest first
+              });
+            
+            return sortedVideos.slice(0, this.config.count).map((item: any, index: number) => {
+              const videoId = item.videoId || item.id || `tiktok_${Date.now()}_${index}`;
+              const caption = item.description || item.desc || item.text || '';
+              const createTime = item.createTime || item.create_time;
+              const views = item.plays || item.stats?.playCount || item.playCount || item.videoViewCount || 0;
+              const likes = item.likes || item.stats?.diggCount || item.diggCount || item.likesCount || 0;
+              const comments = item.comments || item.stats?.commentCount || item.commentCount || 0;
+              const shares = item.shares || item.stats?.shareCount || item.shareCount || 0;
               
               return {
-                id: item.id || `tiktok_${Date.now()}_${index}`,
+                id: videoId,
                 caption: caption || 'No caption available',
-                postUrl: `https://tiktok.com/@${this.config.username}/video/${item.id}`,
+                postUrl: item.videoUrl || `https://tiktok.com/@${this.config.username}/video/${videoId}`,
                 hook: this.extractHook(caption),
                 transcript: this.generateTranscript(caption),
                 views: views,
                 likes: likes,
-                uploadDate: item.createTime ? new Date(parseInt(item.createTime) * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                thumbnail: item.video?.cover || item.video?.originCover || item.cover || '',
+                uploadDate: createTime ? (typeof createTime === 'string' ? new Date(createTime).toISOString().split('T')[0] : new Date(parseInt(createTime) * 1000).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+                thumbnail: item.coverImage || item.video?.cover || item.video?.originCover || item.cover || '',
                 username: this.config.username,
-                duration: item.video?.duration || 0,
+                duration: item.video?.duration || item.duration || 0,
                 comments: comments,
                 shares: shares,
                 engagementRate: views > 0 ? ((likes + comments + shares) / views) * 100 : 0
               };
             });
           }
-      
-          // If we have profile data but no individual videos, check if profile matches
-          if (firstItem.itemList && Array.isArray(firstItem.itemList) && firstItem.itemList.length === 0) {
-            const profileUsername = (firstItem as any).user?.uniqueId || (firstItem as any).uniqueId || '';
-            
-            if (profileUsername.toLowerCase() !== this.config.username.toLowerCase()) {
-              continue;
-            }
-            
-            continue;
-          }
 
-          // If we have profile data with videos in itemList
+          // If we have profile data with videos in itemList (older format) - keep for backward compatibility
           if (firstItem.itemList && Array.isArray(firstItem.itemList) && firstItem.itemList.length > 0) {
+            console.log(`📋 Found ${firstItem.itemList.length} videos in itemList format (legacy)`);
             
                 // Filter videos to only include those from the requested username
                 const filteredItems = firstItem.itemList.filter((item: any) => {
@@ -230,34 +394,44 @@ export class ApifyScraper {
               .sort((a, b) => parseInt(String(b.createTime)) - parseInt(String(a.createTime)));
             
             return sortedItemListItems.slice(0, this.config.count).map((item: any, index: number) => {
-              const caption = item.desc || item.text || item.description || '';
-              const views = item.stats?.playCount || item.playCount || item.videoViewCount || 0;
-              const likes = item.stats?.diggCount || item.diggCount || item.likesCount || 0;
-              const comments = item.stats?.commentCount || item.commentCount || 0;
-              const shares = item.stats?.shareCount || item.shareCount || 0;
+              // Handle both formats
+              const videoId = item.videoId || item.id || `tiktok_${Date.now()}_${index}`;
+              const caption = item.description || item.desc || item.text || '';
+              const createTime = item.createTime || item.create_time;
+              const views = item.plays || item.stats?.playCount || item.playCount || item.videoViewCount || 0;
+              const likes = item.likes || item.stats?.diggCount || item.diggCount || item.likesCount || 0;
+              const comments = item.comments || item.stats?.commentCount || item.commentCount || 0;
+              const shares = item.shares || item.stats?.shareCount || item.shareCount || 0;
               
               return {
-                id: item.id || `tiktok_${Date.now()}_${index}`,
+                id: videoId,
                 caption: caption || 'No caption available',
-                postUrl: `https://tiktok.com/@${this.config.username}/video/${item.id}`,
+                postUrl: item.videoUrl || `https://tiktok.com/@${this.config.username}/video/${videoId}`,
                 hook: this.extractHook(caption),
                 transcript: this.generateTranscript(caption),
                 views: views,
                 likes: likes,
-                uploadDate: item.createTime ? new Date(parseInt(item.createTime) * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                thumbnail: item.video?.cover || item.video?.originCover || item.cover || '',
+                uploadDate: createTime ? (typeof createTime === 'string' ? new Date(createTime).toISOString().split('T')[0] : new Date(parseInt(createTime) * 1000).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+                thumbnail: item.coverImage || item.video?.cover || item.video?.originCover || item.cover || '',
                 username: this.config.username,
-                duration: item.video?.duration || 0,
+                duration: item.video?.duration || item.duration || 0,
                 comments: comments,
                 shares: shares,
                 engagementRate: views > 0 ? ((likes + comments + shares) / views) * 100 : 0
               };
             });
           }
+          
+          // If we got items but they don't match expected formats, log and continue
+          console.log(`⚠️ Unexpected data format from ${actorId}, trying next actor...`);
+          console.log(`   First item keys:`, Object.keys(firstItem || {}));
+          continue;
         } catch (actorError) {
+          console.error(`❌ Error with ${actorId}:`, actorError instanceof Error ? actorError.message : 'Unknown error');
           
           // If it's a 404 error (actor not found), skip to next actor
-          if (actorError instanceof Error && actorError.message.includes('not found')) {
+          if (actorError instanceof Error && (actorError.message.includes('not found') || actorError.message.includes('404'))) {
+            console.log(`   Actor ${actorId} not found, trying next...`);
             continue;
           }
           

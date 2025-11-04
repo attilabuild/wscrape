@@ -78,40 +78,48 @@ export default function Contents({
 
   useEffect(() => {
     const loadContent = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
 
-      const { data, error } = await supabase
-        .from('contents')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        // Only select needed fields (faster query)
+        // Note: upload_date column doesn't exist, using created_at instead
+        const { data, error } = await supabase
+          .from('contents')
+          .select('id, username, caption, hook, transcript, views, likes, engagement_rate, created_at, content_type, post_url, viral_score, hashtags, platform')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(100); // Limit to 100 most recent items
 
-      if (!error && data) {
-        // Map database fields to expected format
-        const formattedData = data.map((item: any) => ({
-          id: item.id,
-          username: item.username,
-          caption: item.caption,
-          hook: item.hook,
-          transcript: item.transcript,
-          views: item.views,
-          likes: item.likes,
-          comments: item.comments,
-          shares: item.shares,
-          engagementRate: item.engagement_rate,
-          uploadDate: item.upload_date,
-          contentType: item.content_type,
-          postUrl: item.post_url,
-          thumbnail: null, // Don't show thumbnails
-          viralScore: item.viral_score,
-          hashtags: item.hashtags,
-          mentions: item.mentions,
-          platform: item.platform,
-        }));
-        setDbContent(formattedData);
+        if (!error && data) {
+          // Map database fields to expected format
+          const formattedData = data.map((item: any) => ({
+            id: item.id,
+            username: item.username,
+            caption: item.caption,
+            hook: item.hook,
+            transcript: item.transcript,
+            views: item.views,
+            likes: item.likes,
+            comments: 0, // Default since column doesn't exist
+            shares: 0, // Default since column doesn't exist
+            engagementRate: item.engagement_rate,
+            uploadDate: item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            contentType: item.content_type,
+            postUrl: item.post_url,
+            thumbnail: null,
+            viralScore: item.viral_score,
+            hashtags: item.hashtags || [],
+            mentions: [], // Default since column doesn't exist
+            platform: item.platform,
+          }));
+          setDbContent(formattedData);
+        }
+      } catch (err) {
+        console.error('Error loading content:', err);
+      } finally {
+        setLoadingDb(false);
       }
-      setLoadingDb(false);
     };
     loadContent();
   }, []);
@@ -517,37 +525,47 @@ export default function Contents({
               e.preventDefault();
               setSubmitLoading(true);
               try {
-                // Get auth token for the request
-                const { data: { session } } = await supabase.auth.getSession();
-                const token = session?.access_token;
-                
-                const res = await fetch('/api/content', {
-                  method: 'POST',
-                  headers: { 
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` })
-                  },
-                  body: JSON.stringify({
-                    action: 'add',
-                    payload: {
-                      hook: form.hook,
-                      caption: form.caption,
-                      transcript: form.transcript || form.caption || form.hook,
-                      username: form.username || 'manual_entry',
-                      contentType: form.contentType || 'general',
-                      hashtags: form.hashtags
-                        ? form.hashtags.split(',').map(h => h.trim()).filter(Boolean)
-                        : [],
-                    }
-                  })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Failed to add content');
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                  alert('Please log in to save content');
+                  setSubmitLoading(false);
+                  return;
+                }
+
+                // Save directly to Supabase instead of in-memory database
+                const { error } = await supabase
+                  .from('contents')
+                  .insert({
+                    user_id: user.id,
+                    username: form.username || 'manual_entry',
+                    caption: form.caption,
+                    hook: form.hook,
+                    transcript: form.transcript || form.caption || form.hook,
+                    views: 0,
+                    likes: 0,
+                    comments: 0,
+                    shares: 0,
+                    engagement_rate: 0,
+                    upload_date: new Date().toISOString().split('T')[0],
+                    content_type: form.contentType || 'general',
+                    post_url: '',
+                    viral_score: 50,
+                    hashtags: form.hashtags
+                      ? form.hashtags.split(',').map(h => h.trim()).filter(Boolean)
+                      : [],
+                    mentions: [],
+                    platform: form.contentType || 'general'
+                  });
+
+                if (error) throw error;
+
                 setForm({ hook: '', caption: '', transcript: '', username: '', contentType: 'general', hashtags: '' });
                 setIsAdding(false);
                 // refresh saved content
                 fetchSavedContent();
-              } catch (err) {
+              } catch (err: any) {
+                console.error('Error saving content:', err);
+                alert('Failed to save content: ' + (err?.message || 'Unknown error'));
               } finally {
                 setSubmitLoading(false);
               }

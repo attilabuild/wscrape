@@ -18,15 +18,24 @@ export default function SignupPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         // User is logged in, redirect based on subscription status
-        const { data: subscription } = await supabase
+        const { data: subscription, error: subError } = await supabase
           .from('user_subscriptions')
-          .select('stripe_status, current_period_end')
+          .select('stripe_status, current_period_end, premium_access')
           .eq('user_id', session.user.id)
           .single();
 
-        const hasActiveSubscription = subscription && 
+        // Handle case where no subscription exists (error is OK here)
+        if (subError && !subError.message?.includes('No rows')) {
+          console.error('Subscription check error:', subError);
+        }
+
+        // Check if user has premium_access OR active Stripe subscription
+        const hasPremiumAccess = subscription?.premium_access === true;
+        const hasActiveStripe = subscription && 
           ['active', 'trialing'].includes(subscription.stripe_status) &&
           new Date(subscription.current_period_end) > new Date();
+        
+        const hasActiveSubscription = hasPremiumAccess || hasActiveStripe;
 
         if (hasActiveSubscription) {
           router.push('/dashboard');
@@ -104,8 +113,8 @@ export default function SignupPage() {
   };
 
   const signUpWithGoogle = async () => {
-    // Use environment variable for production, fallback to origin for local dev
-    const redirectUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    // Always use current origin to ensure localhost works correctly
+    const redirectUrl = window.location.origin;
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

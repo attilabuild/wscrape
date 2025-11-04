@@ -18,7 +18,10 @@ export interface SubscriptionStatus {
 export async function verifyActiveSubscription(userId: string): Promise<SubscriptionStatus> {
   try {
     // TEMPORARY: Allow specific user ID with manual premium access
-    const allowedUserIds = ['643222b4-1964-48ba-a5fd-52df595b3676'];
+    const allowedUserIds = [
+      '643222b4-1964-48ba-a5fd-52df595b3676',
+      'e0ff0b2e-c476-4ed6-afdc-a19c55ef6722' // Temporary: Add your user ID here while fixing service role key
+    ];
     if (allowedUserIds.includes(userId)) {
       console.log('User has manual premium access (temporary fix)');
       return {
@@ -48,10 +51,25 @@ export async function verifyActiveSubscription(userId: string): Promise<Subscrip
 
     if (error) {
       console.log('Subscription query error:', error);
-      // If error is because no row exists, that's OK
-      if (!error.message?.includes('No rows')) {
+      
+      // Check if error is invalid API key - this is a configuration issue
+      if (error.message?.includes('Invalid API key')) {
+        console.error('⚠️ CRITICAL: Invalid Supabase service role key!');
+        console.error('Please check your SUPABASE_SERVICE_ROLE_KEY in environment variables.');
+        console.error('Get the correct key from: Supabase Dashboard → Project Settings → API → service_role key');
+        // Return false but log the issue clearly
         return { isActive: false };
       }
+      
+      // If error is because no row exists, that's OK
+      if (error.message?.includes('No rows')) {
+        console.log('No subscription row found for user (this is OK for new users)');
+        return { isActive: false };
+      }
+      
+      // Other errors - return false
+      console.error('Unexpected subscription query error:', error);
+      return { isActive: false };
     }
 
     if (!subscription) {
@@ -133,11 +151,16 @@ export async function requireActiveSubscription(userId: string | null): Promise<
 export async function getSubscriptionDetails(userId: string) {
   const supabase = createServerSupabaseClient();
   
-  const { data: subscription } = await supabase
+  const { data: subscription, error } = await supabase
     .from('user_subscriptions')
     .select('*')
     .eq('user_id', userId)
     .single();
+
+  // Handle case where no subscription exists (error is OK here)
+  if (error && !error.message?.includes('No rows')) {
+    console.error('Subscription check error:', error);
+  }
 
   if (!subscription) {
     return {

@@ -17,11 +17,16 @@ export async function getOrCreateStripeCustomer(userId: string, email: string) {
   const supabase = createServerSupabaseClient();
   
   // Check if customer already exists
-  const { data: existing } = await supabase
+  const { data: existing, error } = await supabase
     .from('user_subscriptions')
     .select('stripe_customer_id')
     .eq('user_id', userId)
     .single();
+
+  // Handle case where no subscription exists (error is OK here)
+  if (error && !error.message?.includes('No rows')) {
+    console.error('Subscription check error:', error);
+  }
 
   if (existing?.stripe_customer_id) {
     return existing.stripe_customer_id;
@@ -49,15 +54,26 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
   const { createServerSupabaseClient } = await import('./supabase-server');
   const supabase = createServerSupabaseClient();
   
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('user_subscriptions')
-    .select('stripe_status, current_period_end')
+    .select('stripe_status, current_period_end, premium_access')
     .eq('user_id', userId)
     .single();
 
+  // Handle case where no subscription exists (error is OK here)
+  if (error && !error.message?.includes('No rows')) {
+    console.error('Subscription check error:', error);
+    return false;
+  }
+
   if (!data) return false;
 
-  // Check if subscription is active and not expired
+  // Check if user has premium_access (manual premium grant)
+  if (data.premium_access === true) {
+    return true;
+  }
+
+  // Check if Stripe subscription is active and not expired
   const isActive = ['active', 'trialing'].includes(data.stripe_status);
   const notExpired = data.current_period_end 
     ? new Date(data.current_period_end) > new Date() 

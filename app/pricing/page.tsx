@@ -17,11 +17,16 @@ export default function PricingPage() {
       
       // If user is logged in, check if they have premium access
       if (session?.user) {
-        const { data: subscription } = await supabase
+        const { data: subscription, error: subError } = await supabase
           .from('user_subscriptions')
           .select('premium_access, stripe_status')
           .eq('user_id', session.user.id)
           .single();
+        
+        // Handle case where no subscription exists (error is OK here)
+        if (subError && !subError.message?.includes('No rows')) {
+          console.error('Subscription check error:', subError);
+        }
         
         // If user has premium access, redirect to dashboard
         if (subscription?.premium_access === true || subscription?.stripe_status === 'active') {

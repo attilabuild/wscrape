@@ -380,12 +380,12 @@ export default function Dashboard() {
       const response = await fetch('/api/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'search', query })
+        body: JSON.stringify({ action: 'search', filters: { searchQuery: query } })
       });
 
       const result = await response.json();
       if (result.success) {
-        setSavedContent(result.data);
+        setSavedContent(result.data.posts || result.data);
       }
     } catch (error) {
     }
@@ -399,12 +399,12 @@ export default function Dashboard() {
       const response = await fetch('/api/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'filter_by_niche', niche })
+        body: JSON.stringify({ action: 'get_by_niche', filters: { niche } })
       });
 
       const result = await response.json();
       if (result.success) {
-        setSavedContent(result.data);
+        setSavedContent(result.data.posts || result.data);
       }
     } catch (error) {
     }
@@ -477,61 +477,69 @@ export default function Dashboard() {
     }
   }, [activeTab]);
 
-  // Load user profile from Supabase on mount for AI content generation
+  // Load user profile from Supabase on mount for AI content generation (deferred)
   useEffect(() => {
-    const loadUserProfile = async () => {
-      try {
-        const { data: { user } } = await (await import('@/lib/supabase')).supabase.auth.getUser();
-        if (!user) return;
+    // Defer non-critical profile load
+    const timer = setTimeout(() => {
+      const loadUserProfile = async () => {
+        try {
+          const { supabase } = await import('@/lib/supabase');
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.user) return;
 
-        const { data, error } = await (await import('@/lib/supabase')).supabase
-          .from('profiles')
-          .select('name, niche, bio')
-          .eq('id', user.id)
-          .single();
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('name, niche, bio')
+            .eq('id', session.user.id)
+            .single();
 
-        if (!error && data) {
-          setUserProfile({
-            name: data.name,
-            niche: data.niche,
-            bio: data.bio
-          });
-          
-          // Auto-set the niche selector if user has a niche in their profile
-          if (data.niche) {
-            setSelectedNiche(data.niche.toLowerCase());
+          if (!error && data) {
+            setUserProfile({
+              name: data.name,
+              niche: data.niche,
+              bio: data.bio
+            });
+            
+            // Auto-set the niche selector if user has a niche in their profile
+            if (data.niche) {
+              setSelectedNiche(data.niche.toLowerCase());
+            }
           }
+        } catch (error) {
         }
-      } catch (error) {
-      }
-    };
+      };
+      loadUserProfile();
+    }, 500); // Defer by 500ms
 
-    loadUserProfile();
+    return () => clearTimeout(timer);
   }, []);
 
-  // Load user's saved content for AI context
+  // Load user's saved content for AI context (only when needed)
   useEffect(() => {
+    // Only load when user goes to generate content sub-page
+    if (dashboardSubPage !== 'generate') return;
+    
     const fetchUserSavedContent = async () => {
       try {
-        const { data: { user } } = await (await import('@/lib/supabase')).supabase.auth.getUser();
-        if (!user) return;
+        const { supabase } = await import('@/lib/supabase');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
 
-        const { data, error } = await (await import('@/lib/supabase')).supabase
+        const { data, error } = await supabase
           .from('contents')
           .select('hook, caption, content_type, viral_score, hashtags')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
+          .eq('user_id', session.user.id)
+          .order('viral_score', { ascending: false })
           .limit(10);
-
+        
         if (!error && data) {
-          setUserSavedContent(data);
+          setUserSavedContent(data || []);
         }
       } catch (error) {
       }
     };
-
     fetchUserSavedContent();
-  }, [activeTab]);
+  }, [dashboardSubPage]);
 
   return (
     <ProtectedRoute>
