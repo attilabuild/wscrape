@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -8,8 +8,20 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const isFromCheckoutRef = useRef(false);
 
   useEffect(() => {
+    // Check for checkout success FIRST, before any other checks
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const sessionId = urlParams.get('session_id');
+    const isFromStripeCheckout = success === 'true' || !!sessionId;
+    
+    if (isFromStripeCheckout) {
+      console.log('✅ Detected Stripe checkout success - will allow access');
+      isFromCheckoutRef.current = true;
+    }
+
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -18,16 +30,9 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         return;
       }
       
-      // Check if user is coming from Stripe checkout (success parameter or session_id)
-      // Give them a grace period to allow webhook to process
-      const urlParams = new URLSearchParams(window.location.search);
-      const success = urlParams.get('success');
-      const sessionId = urlParams.get('session_id');
-      const isFromStripeCheckout = success === 'true' || !!sessionId;
-      
-      if (isFromStripeCheckout) {
-        console.log('✅ Detected Stripe checkout success - allowing access immediately');
-        // Allow access immediately while webhook processes
+      // If coming from checkout, allow access immediately
+      if (isFromCheckoutRef.current) {
+        console.log('✅ Payment successful! Allowing access - webhook will process subscription in background');
         setAuthenticated(true);
         setLoading(false);
         
@@ -84,18 +89,20 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
     // Listen for auth changes
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      // If coming from checkout, always allow access (don't redirect)
+      if (isFromCheckoutRef.current) {
+        console.log('✅ Allowing access from checkout - webhook will process subscription');
+        setAuthenticated(true);
+        setLoading(false);
+        return;
+      }
+
       if (!session) {
         router.push('/');
         return;
       }
-
-      // Check if user is coming from Stripe checkout
-      const urlParams = new URLSearchParams(window.location.search);
-      const success = urlParams.get('success');
-      const sessionId = urlParams.get('session_id');
-      const isFromStripeCheckout = success === 'true' || !!sessionId;
       
-      // Re-check subscription on auth state change
+      // Re-check subscription on auth state change (only if not from checkout)
       const { data: subscriptionData, error: subError } = await supabase
         .from('user_subscriptions')
         .select('stripe_status, current_period_end, premium_access')
@@ -115,17 +122,11 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       
       const hasActiveSubscription = hasPremiumAccess || hasActiveStripe;
 
-      // Don't redirect if coming from checkout (allow webhook to process)
-      if (!hasActiveSubscription && !isFromStripeCheckout) {
+      if (!hasActiveSubscription) {
         console.log('❌ No subscription in auth change - redirecting to pricing');
         router.push('/pricing');
-      } else if (hasActiveSubscription) {
+      } else {
         console.log('✅ Subscription found in auth change - allowing access');
-        setAuthenticated(true);
-        setLoading(false);
-      } else if (isFromStripeCheckout) {
-        // Coming from checkout but no subscription yet - allow access while webhook processes
-        console.log('✅ Allowing access from checkout - webhook will process subscription');
         setAuthenticated(true);
         setLoading(false);
       }
