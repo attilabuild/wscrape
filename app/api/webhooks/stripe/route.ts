@@ -19,6 +19,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // CRITICAL: Read the raw body as text to preserve exact formatting for signature verification
+    // Do NOT use request.json() as it will parse and potentially modify the body
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
 
@@ -39,9 +41,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Log webhook secret info (first 10 chars for debugging, but not the full secret)
-    console.log(`🔐 Webhook secret configured: ${stripeConfig.webhookSecret.substring(0, 10)}...${stripeConfig.webhookSecret.substring(stripeConfig.webhookSecret.length - 4)}`);
-    console.log(`📝 Signature header present: ${signature ? 'Yes' : 'No'}`);
+    const secretPreview = `${stripeConfig.webhookSecret.substring(0, 10)}...${stripeConfig.webhookSecret.substring(stripeConfig.webhookSecret.length - 4)}`;
+    console.log(`🔐 Webhook secret configured: ${secretPreview}`);
+    console.log(`📝 Signature header: ${signature ? 'Present' : 'MISSING'}`);
     console.log(`📦 Body length: ${body.length} bytes`);
+    console.log(`📝 Signature format: ${signature ? signature.split(',').length + ' parts' : 'N/A'}`);
+    
+    // Verify the secret format (should start with whsec_)
+    if (!stripeConfig.webhookSecret.startsWith('whsec_')) {
+      console.error(`❌ Webhook secret format is incorrect! Should start with 'whsec_', but starts with: ${stripeConfig.webhookSecret.substring(0, 6)}`);
+      return NextResponse.json(
+        { error: 'Webhook secret format is incorrect. Must start with whsec_' },
+        { status: 500 }
+      );
+    }
 
     let event: Stripe.Event;
 
@@ -55,20 +68,25 @@ export async function POST(request: NextRequest) {
     } catch (err: any) {
       console.error('❌ Webhook signature verification failed');
       console.error(`   Error: ${err.message}`);
-      console.error(`   Expected secret starts with: ${stripeConfig.webhookSecret.substring(0, 10)}...`);
-      console.error(`   Signature header: ${signature ? signature.substring(0, 50) + '...' : 'MISSING'}`);
-      console.error(`   Body preview: ${body.substring(0, 100)}...`);
+      console.error(`   Webhook secret preview: ${secretPreview}`);
+      console.error(`   Signature header preview: ${signature ? signature.substring(0, 100) : 'MISSING'}`);
+      console.error(`   Body preview (first 200 chars): ${body.substring(0, 200)}`);
+      console.error(`   Body ends with: ...${body.substring(Math.max(0, body.length - 50))}`);
       
       // Provide helpful error message
       const errorMessage = err.message || 'Unknown signature error';
       if (errorMessage.includes('No signatures found')) {
-        console.error('   ⚠️ This usually means the webhook secret is incorrect or the signature header is malformed');
+        console.error('   ⚠️ DIAGNOSIS: This means the webhook secret in STRIPE_WEBHOOK_SECRET does not match the signing secret in Stripe Dashboard');
+        console.error('   ⚠️ SOLUTION: Copy the exact signing secret from Stripe Dashboard → Webhooks → Your endpoint → Signing secret');
+        console.error('   ⚠️ Make sure there are no extra spaces, quotes, or newlines in the environment variable');
       } else if (errorMessage.includes('timestamp')) {
-        console.error('   ⚠️ This might indicate the webhook is too old or the clock is skewed');
+        console.error('   ⚠️ DIAGNOSIS: This might indicate the webhook is too old or the server clock is skewed');
+      } else if (errorMessage.includes('raw request body')) {
+        console.error('   ⚠️ DIAGNOSIS: The request body may have been modified. Ensure you are reading the raw body with request.text(), not request.json()');
       }
       
       return NextResponse.json(
-        { error: `Invalid signature: ${errorMessage}. Please verify STRIPE_WEBHOOK_SECRET matches the signing secret in Stripe Dashboard.` },
+        { error: `Invalid signature: ${errorMessage}. Please verify STRIPE_WEBHOOK_SECRET matches the signing secret in Stripe Dashboard exactly (including whsec_ prefix).` },
         { status: 400 }
       );
     }
