@@ -30,6 +30,23 @@ export default function Dashboard() {
 
   // Main navigation state
   const [activeTab, setActiveTab] = useState<'dashboard' | 'contents' | 'profile' | 'calendar' | 'templates' | 'billing'>('contents');
+  
+  // Success message state for payment completion
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  // Check for success parameter from Stripe redirect
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    
+    if (success === 'true') {
+      setShowSuccessMessage(true);
+      // Remove the query parameter from URL
+      window.history.replaceState({}, '', '/dashboard');
+      // Hide success message after 5 seconds
+      setTimeout(() => setShowSuccessMessage(false), 5000);
+    }
+  }, []);
 
   // Scraping states
   const [username, setUsername] = useState('hormozi');
@@ -544,6 +561,24 @@ export default function Dashboard() {
   return (
     <ProtectedRoute>
     <div className="min-h-screen bg-black text-white flex">
+      {/* Success Message Banner */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-3 animate-in fade-in slide-in-from-top-5">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <span className="font-semibold">Payment successful! Your subscription is now active.</span>
+          <button
+            onClick={() => setShowSuccessMessage(false)}
+            className="ml-4 text-white/80 hover:text-white"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+      
       {/* Mobile Menu Button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}

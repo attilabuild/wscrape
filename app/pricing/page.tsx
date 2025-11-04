@@ -12,26 +12,43 @@ export default function PricingPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
+      // Check if we're coming from Stripe with a canceled parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const canceled = urlParams.get('canceled');
+      const success = urlParams.get('success');
+      
+      // If payment was successful, redirect to dashboard immediately
+      // (webhook will handle the subscription update in the background)
+      if (success === 'true') {
+        router.push('/dashboard?success=true');
+        return;
+      }
+      
       const { data: { session } } = await supabase.auth.getSession();
       setIsLoggedIn(!!session);
       
       // If user is logged in, check if they have premium access
       if (session?.user) {
-        const { data: subscription, error: subError } = await supabase
-          .from('user_subscriptions')
-          .select('premium_access, stripe_status')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        // Handle case where no subscription exists (error is OK here)
-        if (subError && !subError.message?.includes('No rows')) {
-          console.error('Subscription check error:', subError);
-        }
-        
-        // If user has premium access, redirect to dashboard
-        if (subscription?.premium_access === true || subscription?.stripe_status === 'active') {
-          router.push('/dashboard');
-        }
+        // Wait a bit before checking subscription to allow webhook to process
+        // This prevents race condition where user lands on pricing before webhook completes
+        setTimeout(async () => {
+          const { data: subscription, error: subError } = await supabase
+            .from('user_subscriptions')
+            .select('premium_access, stripe_status')
+            .eq('user_id', session.user.id)
+            .single();
+          
+          // Handle case where no subscription exists (error is OK here)
+          if (subError && !subError.message?.includes('No rows')) {
+            console.error('Subscription check error:', subError);
+          }
+          
+          // If user has premium access, redirect to dashboard
+          // Only redirect if not canceled (to avoid redirecting after user cancels)
+          if (!canceled && (subscription?.premium_access === true || subscription?.stripe_status === 'active')) {
+            router.push('/dashboard');
+          }
+        }, 2000); // Wait 2 seconds for webhook to process
       }
     };
     checkAuth();

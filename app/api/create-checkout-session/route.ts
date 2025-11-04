@@ -15,6 +15,10 @@ export async function POST(request: NextRequest) {
     // Create or get Stripe customer
     const customerId = await getOrCreateStripeCustomer(user.id, user.email!);
 
+    // Get the correct app URL (ensure HTTPS and www)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.wscrape.com';
+    const baseUrl = appUrl.replace(/\/$/, ''); // Remove trailing slash
+    
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -26,8 +30,8 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pricing?canceled=true`,
+      success_url: `${baseUrl}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/pricing?canceled=true`,
       metadata: {
         userId: user.id,
       },
