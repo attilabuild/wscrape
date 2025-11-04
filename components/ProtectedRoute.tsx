@@ -26,14 +26,15 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       const isFromStripeCheckout = success === 'true' || sessionId;
       
       // Check for active subscription
+      // Use .maybeSingle() instead of .single() to handle "no rows" gracefully
       const { data: subscription, error: subError } = await supabase
         .from('user_subscriptions')
         .select('stripe_status, current_period_end, premium_access')
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
 
-      // Handle case where no subscription exists (error is OK here)
-      if (subError && !subError.message?.includes('No rows')) {
+      // Only log actual errors (not "no rows" which is expected)
+      if (subError && subError.code !== 'PGRST116') {
         console.error('Subscription check error:', subError);
       }
 
@@ -54,9 +55,10 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
             .from('user_subscriptions')
             .select('stripe_status, current_period_end, premium_access')
             .eq('user_id', session.user.id)
-            .single();
+            .maybeSingle();
 
-          if (retryError && !retryError.message?.includes('No rows')) {
+          // Only log actual errors (not "no rows" which is expected)
+          if (retryError && retryError.code !== 'PGRST116') {
             console.error('Retry subscription check error:', retryError);
           }
 
@@ -98,14 +100,15 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         router.push('/');
       } else {
         // Re-check subscription on auth state change
+        // Use .maybeSingle() instead of .single() to handle "no rows" gracefully
         const { data: subscriptionData, error: subError } = await supabase
           .from('user_subscriptions')
           .select('stripe_status, current_period_end, premium_access')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
 
-        // Handle case where no subscription exists (error is OK here)
-        if (subError && !subError.message?.includes('No rows')) {
+        // Only log actual errors (not "no rows" which is expected)
+        if (subError && subError.code !== 'PGRST116') {
           console.error('Subscription check error:', subError);
         }
 

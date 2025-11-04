@@ -39,10 +39,10 @@ export default function PricingPage() {
             .from('user_subscriptions')
             .select('premium_access, stripe_status')
             .eq('user_id', session.user.id)
-            .single();
+            .maybeSingle();
           
-          // Handle case where no subscription exists (error is OK here)
-          if (subError && !subError.message?.includes('No rows')) {
+          // Only log actual errors (not "no rows" which is expected)
+          if (subError && subError.code !== 'PGRST116') {
             console.error('Subscription check error:', subError);
           }
           
