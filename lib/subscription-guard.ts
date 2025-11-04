@@ -41,11 +41,12 @@ export async function verifyActiveSubscription(userId: string): Promise<Subscrip
     console.log('Checking subscription for user:', userId);
     
     // Query subscription from database
+    // Use maybeSingle() instead of single() to handle "no rows" gracefully
     const { data: subscription, error } = await supabase
       .from('user_subscriptions')
       .select('stripe_status, current_period_end, cancel_at_period_end, premium_access')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     console.log('Subscription query result:', { subscription, error });
 
@@ -135,6 +136,30 @@ export async function requireActiveSubscription(userId: string | null): Promise<
   
   // Debug: Log subscription check result
   if (!subscription.isActive) {
+    // Give a grace period - check if subscription might be processing
+    // If subscription was created/updated recently (within last 5 minutes), allow access
+    // This handles the race condition where webhook hasn't processed yet
+    const supabase = createServerSupabaseClient();
+    const { data: recentSubscription } = await supabase
+      .from('user_subscriptions')
+      .select('updated_at, created_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (recentSubscription) {
+      const updatedAt = recentSubscription.updated_at ? new Date(recentSubscription.updated_at) : null;
+      const createdAt = recentSubscription.created_at ? new Date(recentSubscription.created_at) : null;
+      const mostRecent = updatedAt || createdAt;
+      
+      if (mostRecent) {
+        const minutesAgo = (Date.now() - mostRecent.getTime()) / (1000 * 60);
+        if (minutesAgo < 5) {
+          console.log(`⏳ Subscription recently created/updated (${minutesAgo.toFixed(1)} min ago) - allowing access during grace period`);
+          return { authorized: true };
+        }
+      }
+    }
+    
     return {
       authorized: false,
       error: subscription.status ? `Subscription status: ${subscription.status}. Please subscribe at /pricing` : 'Active subscription required. Please subscribe at /pricing',
