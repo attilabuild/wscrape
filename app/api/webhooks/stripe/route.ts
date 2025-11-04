@@ -38,6 +38,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Log webhook secret info (first 10 chars for debugging, but not the full secret)
+    console.log(`🔐 Webhook secret configured: ${stripeConfig.webhookSecret.substring(0, 10)}...${stripeConfig.webhookSecret.substring(stripeConfig.webhookSecret.length - 4)}`);
+    console.log(`📝 Signature header present: ${signature ? 'Yes' : 'No'}`);
+    console.log(`📦 Body length: ${body.length} bytes`);
+
     let event: Stripe.Event;
 
     try {
@@ -48,9 +53,22 @@ export async function POST(request: NextRequest) {
       );
       console.log(`✅ Webhook verified: ${event.type} (ID: ${event.id})`);
     } catch (err: any) {
-      console.error('❌ Webhook signature verification failed:', err.message);
+      console.error('❌ Webhook signature verification failed');
+      console.error(`   Error: ${err.message}`);
+      console.error(`   Expected secret starts with: ${stripeConfig.webhookSecret.substring(0, 10)}...`);
+      console.error(`   Signature header: ${signature ? signature.substring(0, 50) + '...' : 'MISSING'}`);
+      console.error(`   Body preview: ${body.substring(0, 100)}...`);
+      
+      // Provide helpful error message
+      const errorMessage = err.message || 'Unknown signature error';
+      if (errorMessage.includes('No signatures found')) {
+        console.error('   ⚠️ This usually means the webhook secret is incorrect or the signature header is malformed');
+      } else if (errorMessage.includes('timestamp')) {
+        console.error('   ⚠️ This might indicate the webhook is too old or the clock is skewed');
+      }
+      
       return NextResponse.json(
-        { error: `Invalid signature: ${err.message}` },
+        { error: `Invalid signature: ${errorMessage}. Please verify STRIPE_WEBHOOK_SECRET matches the signing secret in Stripe Dashboard.` },
         { status: 400 }
       );
     }

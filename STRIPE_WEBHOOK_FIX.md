@@ -54,10 +54,28 @@ If using **other hosting**:
 - Check for trailing slash redirects
 - Ensure POST requests aren't being redirected
 
-### 4. Verify Webhook Secret
-Ensure `STRIPE_WEBHOOK_SECRET` environment variable is set correctly:
-- For **live mode**: Use the webhook signing secret from Stripe Dashboard (starts with `whsec_`)
-- For **test mode**: Use the test webhook signing secret
+### 4. Fix "Invalid signature" (400 Error)
+
+If you're seeing **400 "Invalid signature"** errors after fixing the redirect:
+
+1. **Get the correct webhook signing secret:**
+   - Go to Stripe Dashboard → Webhooks → Your webhook endpoint
+   - Find the **"Signing secret"** section
+   - Click **"Reveal"** to see the full secret (starts with `whsec_`)
+   - Example: `whsec_ArlJS9AUJxjAnsargjFF8FnQGozWLXXu`
+
+2. **Update your environment variable:**
+   - In your hosting platform (Vercel, etc.), go to Environment Variables
+   - Set `STRIPE_WEBHOOK_SECRET` to the exact signing secret from step 1
+   - Make sure there are no extra spaces or quotes
+   - **Important:** Use the **live mode** secret if you're in live mode, or the **test mode** secret if you're in test mode
+
+3. **Redeploy your application** after updating the environment variable
+
+4. **Verify the secret matches:**
+   - Check your server logs - you should see logs showing the webhook secret (first/last few characters)
+   - Compare with the signing secret in Stripe Dashboard
+   - They must match exactly
 
 ### 5. Test Manually
 After updating the webhook URL in Stripe:
