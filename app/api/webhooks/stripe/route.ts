@@ -142,14 +142,36 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.userId;
   if (!userId) {
     console.log(`⚠️ No userId in metadata for session ${session.id}`);
+    // Try to get userId from customer metadata as fallback
+    const customerId = session.customer as string;
+    if (customerId) {
+      try {
+        const customer = await stripe.customers.retrieve(customerId);
+        if (customer && !customer.deleted && (customer as any).metadata?.userId) {
+          const fallbackUserId = (customer as any).metadata.userId;
+          console.log(`📋 Found userId from customer metadata: ${fallbackUserId}`);
+          // Continue with fallback userId
+          return await saveSubscriptionFromCheckout(session, fallbackUserId);
+        }
+      } catch (error) {
+        console.error(`❌ Error retrieving customer ${customerId}:`, error);
+      }
+    }
+    console.log(`❌ Cannot process checkout - no userId found`);
     return;
   }
 
+  return await saveSubscriptionFromCheckout(session, userId);
+}
+
+async function saveSubscriptionFromCheckout(session: Stripe.Checkout.Session, userId: string) {
   const supabase = createServerSupabaseClient();
 
-  // Handle subscription mode (recurring payments)
+  // Handle subscription mode (recurring payments)g
   if (session.mode === 'subscription' && session.subscription) {
     try {
+      console.log(`📋 Retrieving subscription ${session.subscription} for user ${userId}`);
+      
       // Get subscription details with expand to ensure we get all fields
       const subscription = await stripe.subscriptions.retrieve(
         session.subscription as string,
@@ -158,21 +180,75 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
       const periodStart = (subscription as any).current_period_start;
       const periodEnd = (subscription as any).current_period_end;
+      const customerId = session.customer as string;
       
-      await supabase.from('user_subscriptions').upsert({
+      const subscriptionData = {
         user_id: userId,
-        stripe_customer_id: session.customer as string,
+        stripe_customer_id: customerId,
         stripe_subscription_id: subscription.id,
-        stripe_price_id: (subscription.items.data[0]?.price as any)?.id || '',
+        stripe_price_id: subscription.items.data[0]?.price?.id || '',
         stripe_status: subscription.status,
         current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : new Date().toISOString(),
         current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date().toISOString(),
         cancel_at_period_end: subscription.cancel_at_period_end || false,
+        updated_at: new Date().toISOString(),
+      };
+
+      console.log(`💾 Saving subscription to database:`, {
+        userId,
+        subscriptionId: subscription.id,
+        status: subscription.status,
+        customerId,
       });
-      
-      console.log(`✅ Subscription created/updated for user ${userId}`);
+
+      // Use upsert with proper conflict handling
+      // If user_id is the primary key, upsert will update on conflict
+      // Otherwise, we'll insert or update based on user_id
+      const { data, error } = await supabase
+        .from('user_subscriptions')
+        .upsert(subscriptionData, {
+          onConflict: 'user_id',
+        })
+        .select();
+
+      if (error) {
+        console.error(`❌ Database error saving subscription:`, error);
+        console.error(`   Error details:`, JSON.stringify(error, null, 2));
+        
+        // Try alternative: delete existing and insert new
+        console.log(`🔄 Trying alternative: delete existing and insert`);
+        await supabase
+          .from('user_subscriptions')
+          .delete()
+          .eq('user_id', userId);
+        
+        const { data: insertData, error: insertError } = await supabase
+          .from('user_subscriptions')
+          .insert(subscriptionData)
+          .select();
+
+        if (insertError) {
+          console.error(`❌ Failed to insert subscription after delete:`, insertError);
+          throw insertError;
+        }
+
+        console.log(`✅ Subscription saved via delete+insert method:`, insertData);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        console.log(`✅ Subscription created/updated successfully for user ${userId}`);
+        console.log(`   Saved subscription:`, {
+          id: data[0].user_id,
+          subscriptionId: data[0].stripe_subscription_id,
+          status: data[0].stripe_status,
+        });
+      } else {
+        console.warn(`⚠️ Upsert returned no data (but no error)`);
+      }
     } catch (error: any) {
-      console.error(`❌ Error processing subscription:`, error.message);
+      console.error(`❌ Error processing subscription:`, error);
+      console.error(`   Stack:`, error.stack);
       throw error;
     }
   } 
@@ -188,28 +264,115 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const supabase = createServerSupabaseClient();
   
+  // Check if subscription already exists
   const { data: existing } = await supabase
     .from('user_subscriptions')
-    .select('user_id')
+    .select('user_id, stripe_customer_id')
     .eq('stripe_subscription_id', subscription.id)
-    .single();
-
-  if (!existing) return;
+    .maybeSingle();
 
   const periodStart = (subscription as any).current_period_start;
   const periodEnd = (subscription as any).current_period_end;
+  const customerId = subscription.customer as string;
 
-  await supabase
-    .from('user_subscriptions')
-    .update({
-      stripe_status: subscription.status,
-      stripe_price_id: (subscription.items.data[0]?.price as any)?.id || '',
-      current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : new Date().toISOString(),
-      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date().toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end || false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('stripe_subscription_id', subscription.id);
+  const subscriptionData = {
+    stripe_subscription_id: subscription.id,
+    stripe_status: subscription.status,
+    stripe_price_id: (subscription.items.data[0]?.price as any)?.id || '',
+    stripe_customer_id: customerId,
+    current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : new Date().toISOString(),
+    current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date().toISOString(),
+    cancel_at_period_end: subscription.cancel_at_period_end || false,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existing) {
+    // Update existing subscription
+    await supabase
+      .from('user_subscriptions')
+      .update(subscriptionData)
+      .eq('stripe_subscription_id', subscription.id);
+    
+    console.log(`✅ Subscription updated for user ${existing.user_id}`);
+  } else {
+    // Subscription doesn't exist yet - try multiple methods to find user
+    let userId: string | null = null;
+
+    // Method 1: Find by customer_id in existing subscription records
+    const { data: customerSubscription } = await supabase
+      .from('user_subscriptions')
+      .select('user_id')
+      .eq('stripe_customer_id', customerId)
+      .maybeSingle();
+
+    if (customerSubscription?.user_id) {
+      userId = customerSubscription.user_id;
+      console.log(`📋 Found user_id via customer_id lookup: ${userId}`);
+    } else {
+      // Method 2: Get user_id from Stripe customer metadata
+      try {
+        const customer = await stripe.customers.retrieve(customerId);
+        if (customer && !customer.deleted && (customer as any).metadata?.userId) {
+          userId = (customer as any).metadata.userId;
+          console.log(`📋 Found user_id via Stripe customer metadata: ${userId}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error retrieving Stripe customer ${customerId}:`, error);
+      }
+    }
+
+    if (userId) {
+      // Found user - create/update subscription
+      console.log(`💾 Saving subscription ${subscription.id} for user ${userId}`);
+      
+      const { data, error } = await supabase
+        .from('user_subscriptions')
+        .upsert({
+          ...subscriptionData,
+          user_id: userId,
+        }, {
+          onConflict: 'user_id'
+        })
+        .select();
+
+      if (error) {
+        console.error(`❌ Database error saving subscription:`, error);
+        // Try delete + insert as fallback
+        await supabase
+          .from('user_subscriptions')
+          .delete()
+          .eq('user_id', userId);
+        
+        const { data: insertData, error: insertError } = await supabase
+          .from('user_subscriptions')
+          .insert({
+            ...subscriptionData,
+            user_id: userId,
+          })
+          .select();
+
+        if (insertError) {
+          console.error(`❌ Failed to insert subscription:`, insertError);
+          throw insertError;
+        }
+
+        console.log(`✅ Subscription saved via delete+insert for user ${userId}`);
+      } else if (data && data.length > 0) {
+        console.log(`✅ Subscription created/updated for user ${userId}:`, {
+          subscriptionId: data[0].stripe_subscription_id,
+          status: data[0].stripe_status,
+        });
+      } else {
+        console.warn(`⚠️ Upsert returned no data for user ${userId}`);
+      }
+    } else {
+      // No user found - log detailed warning
+      console.warn(`⚠️ Could not find user for subscription ${subscription.id} (customer: ${customerId})`);
+      console.warn(`   Tried: customer_id lookup, Stripe customer metadata`);
+      console.warn(`   This subscription will not be accessible until linked to a user`);
+      console.warn(`   The subscription will be linked when checkout.session.completed fires`);
+    }
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {

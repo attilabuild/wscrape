@@ -55,15 +55,29 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       }
       
       // Check for active subscription (only if not from checkout)
+      // Query all columns we might need
       const { data: subscription, error: subError } = await supabase
         .from('user_subscriptions')
-        .select('stripe_status, current_period_end, premium_access')
+        .select('stripe_status, current_period_end, premium_access, stripe_customer_id, user_id, stripe_subscription_id')
         .eq('user_id', session.user.id)
         .maybeSingle();
 
-      // Only log actual errors (not "no rows" which is expected)
-      if (subError && subError.code !== 'PGRST116') {
-        console.error('Subscription check error:', subError);
+      // Log detailed info for debugging
+      if (subError) {
+        if (subError.code === 'PGRST116') {
+          console.log('ℹ️ No subscription found in database for user:', session.user.id);
+        } else {
+          console.error('❌ Subscription query error:', subError);
+        }
+      } else if (!subscription) {
+        console.log('ℹ️ Subscription query returned null (no subscription found)');
+      } else {
+        console.log('✅ Subscription found in database:', {
+          userId: subscription.user_id,
+          status: subscription.stripe_status,
+          periodEnd: subscription.current_period_end,
+          subscriptionId: subscription.stripe_subscription_id
+        });
       }
 
       // Log subscription data for debugging
