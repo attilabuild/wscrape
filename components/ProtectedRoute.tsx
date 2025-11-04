@@ -66,21 +66,61 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         console.error('Subscription check error:', subError);
       }
 
+      // Log subscription data for debugging
+      console.log('🔍 Subscription check:', {
+        hasSubscription: !!subscription,
+        status: subscription?.stripe_status,
+        periodEnd: subscription?.current_period_end,
+        premiumAccess: subscription?.premium_access
+      });
+
       // Check if user has premium_access OR active Stripe subscription
       const hasPremiumAccess = subscription?.premium_access === true;
-      const hasActiveStripe = subscription && 
-        ['active', 'trialing'].includes(subscription.stripe_status) &&
-        new Date(subscription.current_period_end) > new Date();
+      
+      // Check if subscription is active and not expired
+      let hasActiveStripe = false;
+      if (subscription) {
+        const isValidStatus = ['active', 'trialing'].includes(subscription.stripe_status);
+        if (isValidStatus) {
+          if (subscription.current_period_end) {
+            const periodEnd = new Date(subscription.current_period_end);
+            const now = new Date();
+            const isNotExpired = periodEnd > now;
+            hasActiveStripe = isNotExpired;
+            
+            console.log('🔍 Stripe subscription check:', {
+              isValidStatus,
+              periodEnd: periodEnd.toISOString(),
+              now: now.toISOString(),
+              isNotExpired,
+              hasActiveStripe
+            });
+          } else {
+            // If no period_end, assume active if status is active/trialing
+            hasActiveStripe = isValidStatus;
+            console.log('⚠️ No period_end date, using status only:', { isValidStatus });
+          }
+        }
+      }
       
       const hasActiveSubscription = hasPremiumAccess || hasActiveStripe;
 
       if (!hasActiveSubscription) {
-        console.log('❌ No active subscription found - redirecting to pricing');
+        console.log('❌ No active subscription found - redirecting to pricing', {
+          hasPremiumAccess,
+          hasActiveStripe,
+          subscriptionStatus: subscription?.stripe_status,
+          periodEnd: subscription?.current_period_end
+        });
         router.push('/pricing');
         return;
       }
 
-      console.log('✅ Active subscription found - allowing access');
+      console.log('✅ Active subscription found - allowing access', {
+        hasPremiumAccess,
+        hasActiveStripe,
+        subscriptionStatus: subscription?.stripe_status
+      });
       setAuthenticated(true);
       setLoading(false);
     };
@@ -114,19 +154,59 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         console.error('Subscription check error:', subError);
       }
 
+      // Log subscription data for debugging
+      console.log('🔍 Auth change subscription check:', {
+        hasSubscription: !!subscriptionData,
+        status: subscriptionData?.stripe_status,
+        periodEnd: subscriptionData?.current_period_end,
+        premiumAccess: subscriptionData?.premium_access
+      });
+
       // Check if user has premium_access OR active Stripe subscription
       const hasPremiumAccess = subscriptionData?.premium_access === true;
-      const hasActiveStripe = subscriptionData && 
-        ['active', 'trialing'].includes(subscriptionData.stripe_status) &&
-        new Date(subscriptionData.current_period_end) > new Date();
+      
+      // Check if subscription is active and not expired
+      let hasActiveStripe = false;
+      if (subscriptionData) {
+        const isValidStatus = ['active', 'trialing'].includes(subscriptionData.stripe_status);
+        if (isValidStatus) {
+          if (subscriptionData.current_period_end) {
+            const periodEnd = new Date(subscriptionData.current_period_end);
+            const now = new Date();
+            const isNotExpired = periodEnd > now;
+            hasActiveStripe = isNotExpired;
+            
+            console.log('🔍 Auth change Stripe subscription check:', {
+              isValidStatus,
+              periodEnd: periodEnd.toISOString(),
+              now: now.toISOString(),
+              isNotExpired,
+              hasActiveStripe
+            });
+          } else {
+            // If no period_end, assume active if status is active/trialing
+            hasActiveStripe = isValidStatus;
+            console.log('⚠️ No period_end date, using status only:', { isValidStatus });
+          }
+        }
+      }
       
       const hasActiveSubscription = hasPremiumAccess || hasActiveStripe;
 
       if (!hasActiveSubscription) {
-        console.log('❌ No subscription in auth change - redirecting to pricing');
+        console.log('❌ No subscription in auth change - redirecting to pricing', {
+          hasPremiumAccess,
+          hasActiveStripe,
+          subscriptionStatus: subscriptionData?.stripe_status,
+          periodEnd: subscriptionData?.current_period_end
+        });
         router.push('/pricing');
       } else {
-        console.log('✅ Subscription found in auth change - allowing access');
+        console.log('✅ Subscription found in auth change - allowing access', {
+          hasPremiumAccess,
+          hasActiveStripe,
+          subscriptionStatus: subscriptionData?.stripe_status
+        });
         setAuthenticated(true);
         setLoading(false);
       }
