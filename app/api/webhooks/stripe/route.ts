@@ -121,8 +121,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true }, { status: 200 });
     } catch (error: any) {
       console.error(`❌ Webhook handler error for ${event.type}:`, error);
+      console.error(`   Error stack:`, error.stack);
+      console.error(`   Error name:`, error.name);
+      
+      // Provide more helpful error messages for common issues
+      let errorMessage = error.message || 'Unknown error';
+      if (error.message?.includes('Invalid API key') || error.message?.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+        errorMessage = 'Invalid Supabase service role key. Please check SUPABASE_SERVICE_ROLE_KEY environment variable.';
+        console.error('⚠️ CRITICAL: Supabase service role key is invalid or missing!');
+        console.error('⚠️ This is preventing webhooks from saving subscriptions to the database.');
+        console.error('⚠️ Get the correct key from: Supabase Dashboard → Project Settings → API → service_role key');
+      }
+      
       return NextResponse.json(
-        { error: `Webhook handler failed: ${error.message}` },
+        { error: `Webhook handler failed: ${errorMessage}` },
         { status: 500 }
       );
     }

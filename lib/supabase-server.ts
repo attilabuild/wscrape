@@ -11,30 +11,56 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
  */
 export function createServerSupabaseClient() {
   console.log('Creating server client with service role key');
-  console.log('Service key length:', supabaseServiceKey?.length);
-  console.log('Service key starts with:', supabaseServiceKey?.substring(0, 20));
   
   if (!supabaseServiceKey) {
-    console.error('SUPABASE_SERVICE_ROLE_KEY is not set in environment variables');
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
+    const errorMsg = 'SUPABASE_SERVICE_ROLE_KEY is not set in environment variables';
+    console.error(`❌ ${errorMsg}`);
+    console.error('Please set SUPABASE_SERVICE_ROLE_KEY in your environment variables.');
+    console.error('Get it from: Supabase Dashboard → Project Settings → API → service_role key');
+    throw new Error(errorMsg);
   }
   
   if (!supabaseUrl) {
-    console.error('NEXT_PUBLIC_SUPABASE_URL is not set in environment variables');
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not configured');
+    const errorMsg = 'NEXT_PUBLIC_SUPABASE_URL is not set in environment variables';
+    console.error(`❌ ${errorMsg}`);
+    throw new Error(errorMsg);
   }
   
+  // Validate service key format (should be a long string, typically starts with 'eyJ...')
+  if (supabaseServiceKey.length < 50) {
+    console.error(`❌ SUPABASE_SERVICE_ROLE_KEY appears to be too short (${supabaseServiceKey.length} chars). Expected ~200+ characters.`);
+    console.error('Service key preview:', supabaseServiceKey.substring(0, 20) + '...');
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY appears to be invalid (too short)');
+  }
+  
+  // Log minimal info for debugging (don't log the full key)
+  console.log('Service key length:', supabaseServiceKey.length);
+  console.log('Service key format check:', supabaseServiceKey.startsWith('eyJ') ? 'JWT format ✓' : 'Non-JWT format');
   console.log('Supabase URL:', supabaseUrl);
   
-  const client = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
+  try {
+    const client = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+    
+    console.log('✅ Service client created successfully');
+    return client;
+  } catch (error: any) {
+    console.error('❌ Failed to create Supabase client:', error.message);
+    if (error.message?.includes('Invalid API key')) {
+      console.error('⚠️ DIAGNOSIS: The SUPABASE_SERVICE_ROLE_KEY is invalid or incorrect.');
+      console.error('⚠️ SOLUTION:');
+      console.error('   1. Go to Supabase Dashboard → Your Project → Settings → API');
+      console.error('   2. Find the "service_role" key (NOT the anon key)');
+      console.error('   3. Copy the entire key (it should be a long JWT string)');
+      console.error('   4. Set it in your environment variables as SUPABASE_SERVICE_ROLE_KEY');
+      console.error('   5. Make sure there are no extra spaces, quotes, or newlines');
     }
-  });
-  
-  console.log('Service client created successfully');
-  return client;
+    throw error;
+  }
 }
 
 /**
