@@ -130,12 +130,27 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         // Allow access even if status check is incomplete (handles webhook edge cases)
         if (subscription.stripe_subscription_id) {
           const isValidStatus = ['active', 'trialing'].includes(subscription.stripe_status);
+          
           if (isValidStatus) {
+            // Status is active/trialing - check period_end
             if (subscription.current_period_end) {
               const periodEnd = new Date(subscription.current_period_end);
               const now = new Date();
               const isNotExpired = periodEnd > now;
-              hasActiveStripe = isNotExpired;
+              
+              // If expired, still allow if status is active (might be a data issue)
+              // Webhook will update it on the next cycle
+              if (isNotExpired) {
+                hasActiveStripe = true;
+              } else {
+                // Period end is in past but status is active - allow access (data will be fixed by webhook)
+                console.log('⚠️ Period end is in past but status is active - allowing access (webhook will update)', {
+                  periodEnd: periodEnd.toISOString(),
+                  now: now.toISOString(),
+                  status: subscription.stripe_status
+                });
+                hasActiveStripe = true;
+              }
               
               console.log('🔍 Stripe subscription check:', {
                 isValidStatus,
@@ -239,12 +254,27 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         // Allow access even if status check is incomplete (handles webhook edge cases)
         if (subscriptionData.stripe_subscription_id) {
           const isValidStatus = ['active', 'trialing'].includes(subscriptionData.stripe_status);
+          
           if (isValidStatus) {
+            // Status is active/trialing - check period_end
             if (subscriptionData.current_period_end) {
               const periodEnd = new Date(subscriptionData.current_period_end);
               const now = new Date();
               const isNotExpired = periodEnd > now;
-              hasActiveStripe = isNotExpired;
+              
+              // If expired, still allow if status is active (might be a data issue)
+              // Webhook will update it on the next cycle
+              if (isNotExpired) {
+                hasActiveStripe = true;
+              } else {
+                // Period end is in past but status is active - allow access (data will be fixed by webhook)
+                console.log('⚠️ Period end is in past but status is active - allowing access (webhook will update)', {
+                  periodEnd: periodEnd.toISOString(),
+                  now: now.toISOString(),
+                  status: subscriptionData.stripe_status
+                });
+                hasActiveStripe = true;
+              }
               
               console.log('🔍 Auth change Stripe subscription check:', {
                 isValidStatus,

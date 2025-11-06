@@ -190,9 +190,27 @@ async function saveSubscriptionFromCheckout(session: Stripe.Checkout.Session, us
         { expand: ['items.data.price'] }
       );
 
+      // Get period dates from subscription object
+      // Stripe returns these as Unix timestamps (seconds since epoch)
       const periodStart = (subscription as any).current_period_start;
       const periodEnd = (subscription as any).current_period_end;
       const customerId = session.customer as string;
+      
+      console.log('📅 Subscription period dates:', {
+        periodStart: periodStart,
+        periodEnd: periodEnd,
+        periodStartDate: periodStart ? new Date(periodStart * 1000).toISOString() : 'N/A',
+        periodEndDate: periodEnd ? new Date(periodEnd * 1000).toISOString() : 'N/A',
+        now: new Date().toISOString(),
+        periodEndInFuture: periodEnd ? new Date(periodEnd * 1000) > new Date() : false
+      });
+      
+      // Validate period dates - they should be in the future for active subscriptions
+      if (periodEnd && new Date(periodEnd * 1000) <= new Date()) {
+        console.warn('⚠️ WARNING: current_period_end is in the past! This should not happen for active subscriptions.');
+        console.warn('   Period end:', new Date(periodEnd * 1000).toISOString());
+        console.warn('   Now:', new Date().toISOString());
+      }
       
       const subscriptionData = {
         user_id: userId,
@@ -201,7 +219,7 @@ async function saveSubscriptionFromCheckout(session: Stripe.Checkout.Session, us
         stripe_price_id: subscription.items.data[0]?.price?.id || '',
         stripe_status: subscription.status,
         current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : new Date().toISOString(),
-        current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date().toISOString(),
+        current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Fallback: 30 days from now
         cancel_at_period_end: subscription.cancel_at_period_end || false,
         updated_at: new Date().toISOString(),
       };
@@ -283,9 +301,27 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     .eq('stripe_subscription_id', subscription.id)
     .maybeSingle();
 
+  // Get period dates from subscription object
+  // Stripe returns these as Unix timestamps (seconds since epoch)
   const periodStart = (subscription as any).current_period_start;
   const periodEnd = (subscription as any).current_period_end;
   const customerId = subscription.customer as string;
+
+  console.log('📅 Subscription updated - period dates:', {
+    periodStart: periodStart,
+    periodEnd: periodEnd,
+    periodStartDate: periodStart ? new Date(periodStart * 1000).toISOString() : 'N/A',
+    periodEndDate: periodEnd ? new Date(periodEnd * 1000).toISOString() : 'N/A',
+    now: new Date().toISOString(),
+    periodEndInFuture: periodEnd ? new Date(periodEnd * 1000) > new Date() : false
+  });
+
+  // Validate period dates - they should be in the future for active subscriptions
+  if (periodEnd && new Date(periodEnd * 1000) <= new Date()) {
+    console.warn('⚠️ WARNING: current_period_end is in the past! This should not happen for active subscriptions.');
+    console.warn('   Period end:', new Date(periodEnd * 1000).toISOString());
+    console.warn('   Now:', new Date().toISOString());
+  }
 
   const subscriptionData = {
     stripe_subscription_id: subscription.id,
@@ -293,7 +329,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     stripe_price_id: (subscription.items.data[0]?.price as any)?.id || '',
     stripe_customer_id: customerId,
     current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : new Date().toISOString(),
-    current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date().toISOString(),
+    current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Fallback: 30 days from now
     cancel_at_period_end: subscription.cancel_at_period_end || false,
     updated_at: new Date().toISOString(),
   };
