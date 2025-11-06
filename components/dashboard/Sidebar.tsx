@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface SidebarProps {
-  activeTab: 'dashboard' | 'contents' | 'profile' | 'calendar' | 'templates' | 'billing';
-  setActiveTab: (tab: 'dashboard' | 'contents' | 'profile' | 'calendar' | 'templates' | 'billing') => void;
+  activeTab: 'dashboard' | 'contents' | 'profile' | 'templates' | 'billing';
+  setActiveTab: (tab: 'dashboard' | 'contents' | 'profile' | 'templates' | 'billing') => void;
   dashboardSubPage: 'scrape' | 'generate' | 'predict' | 'templates' | 'comments' | 'ai-assistant';
   setDashboardSubPage: (page: 'scrape' | 'generate' | 'predict' | 'templates' | 'comments' | 'ai-assistant') => void;
   showDashboardSubNav: boolean;
@@ -207,24 +207,7 @@ export default function Sidebar({
               <span>Profile</span>
             </button>
             
-            <button
-              onClick={() => {
-                setActiveTab('calendar');
-                setShowDashboardSubNav(false);
-              }}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer ${
-                activeTab === 'calendar' 
-                  ? 'text-white bg-white/10' 
-                  : 'text-gray-300 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-              </svg>
-              <span>Calendar</span>
-            </button>
-            
-            {/* Templates tab removed for MVP */}
+            {/* Calendar and Templates tabs removed */}
             
             <button
               onClick={() => setActiveTab('billing')}

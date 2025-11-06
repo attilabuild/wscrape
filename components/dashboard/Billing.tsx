@@ -191,8 +191,8 @@ export default function Billing() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
             <div>
-              <div className="text-white font-medium">Content Calendar</div>
-              <div className="text-sm text-gray-400">Plan and schedule content</div>
+              <div className="text-white font-medium">Instagram Content Scraping</div>
+              <div className="text-sm text-gray-400">Scrape viral content from Instagram</div>
             </div>
           </div>
           <div className="flex items-start">

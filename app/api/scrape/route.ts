@@ -35,7 +35,7 @@ function cleanUsername(username: string): string {
 
 export async function POST(request: NextRequest) {
   let cleanUser = '';
-  let platform: 'tiktok' | 'instagram' = 'tiktok';
+  let platform: 'tiktok' | 'instagram' = 'instagram';
   let validCount = 5;
   
   try {
@@ -82,11 +82,20 @@ export async function POST(request: NextRequest) {
 
     const body: ScrapeRequest = await request.json();
     const { username, platform: reqPlatform } = body;
-    platform = reqPlatform;
     
-    if (!username || !platform) {
+    // Only allow Instagram scraping
+    if (reqPlatform && reqPlatform !== 'instagram') {
       return NextResponse.json(
-        { error: 'Username and platform are required' },
+        { error: 'Only Instagram scraping is supported. TikTok scraping has been removed.' },
+        { status: 400 }
+      );
+    }
+    
+    platform = 'instagram'; // Force Instagram only
+    
+    if (!username) {
+      return NextResponse.json(
+        { error: 'Username is required' },
         { status: 400 }
       );
     }

@@ -17,20 +17,6 @@ export interface SubscriptionStatus {
  */
 export async function verifyActiveSubscription(userId: string): Promise<SubscriptionStatus> {
   try {
-    // TEMPORARY: Allow specific user ID with manual premium access
-    const allowedUserIds = [
-      '643222b4-1964-48ba-a5fd-52df595b3676',
-      'e0ff0b2e-c476-4ed6-afdc-a19c55ef6722' // Temporary: Add your user ID here while fixing service role key
-    ];
-    if (allowedUserIds.includes(userId)) {
-      console.log('User has manual premium access (temporary fix)');
-      return {
-        isActive: true,
-        status: 'premium',
-        periodEnd: '2099-12-31'
-      };
-    }
-    
     // Check if service role key is available
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     console.log('Service role key exists:', !!serviceKey);
@@ -217,6 +203,9 @@ export async function requireActiveSubscription(userId: string | null): Promise<
         createdAt: recentSubscription.created_at,
         subscriptionId: recentSubscription.stripe_subscription_id
       });
+    } else {
+      // No subscription record exists at all - this means webhook completely failed
+      console.warn(`⚠️ No subscription record found for user ${userId}. Webhook may have failed or user hasn't subscribed yet.`);
     }
     
     return {

@@ -97,30 +97,12 @@ export default function Tools({
               {/* Platform Selection */}
               <div className="text-center">
                 <h3 className="text-lg font-medium text-white mb-4">Platform</h3>
-                <div className="flex justify-center space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPlatform('tiktok')}
-                    className={`px-6 py-3 rounded-lg border border-white/10 transition-all ${
-                      selectedPlatform === 'tiktok' 
-                        ? 'bg-white text-black' 
-                        : 'bg-black text-white hover:bg-white/5'
-                    }`}
-                  >
-                    TikTok
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPlatform('instagram')}
-                    className={`px-6 py-3 rounded-lg border border-white/10 transition-all ${
-                      selectedPlatform === 'instagram' 
-                        ? 'bg-white text-black' 
-                        : 'bg-black text-white hover:bg-white/5'
-                    }`}
-                  >
+                <div className="flex justify-center">
+                  <div className="px-6 py-3 rounded-lg border border-white/10 bg-white text-black">
                     Instagram
-                  </button>
+                  </div>
                 </div>
+                <p className="text-sm text-gray-400 mt-2">Instagram scraping only</p>
               </div>
 
               {/* Input Fields */}

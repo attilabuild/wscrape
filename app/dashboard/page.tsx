@@ -5,7 +5,6 @@ import Sidebar from '../../components/dashboard/Sidebar';
 import Header from '../../components/dashboard/Header';
 import Contents from '../../components/dashboard/Contents';
 import Profile from '../../components/dashboard/Profile';
-import Calendar from '../../components/dashboard/Calendar';
 import Templates from '../../components/dashboard/Templates';
 import Billing from '../../components/dashboard/Billing';
 import Tools from '../../components/dashboard/Tools';
@@ -29,7 +28,7 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Main navigation state
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'contents' | 'profile' | 'calendar' | 'templates' | 'billing'>('contents');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'contents' | 'profile' | 'templates' | 'billing'>('contents');
   
   // Success message state for payment completion
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -96,9 +95,6 @@ export default function Dashboard() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [userSavedContent, setUserSavedContent] = useState<any[]>([]);
 
-  // Calendar Tab States
-  const [calendarView, setCalendarView] = useState<'month' | 'week' | 'day'>('month');
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   // Templates Tab States
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'hooks' | 'stories' | 'educational' | 'controversial' | 'motivation'>('all');
@@ -640,13 +636,6 @@ export default function Dashboard() {
             />
           )}
 
-          {activeTab === 'calendar' && (
-            <Calendar
-              calendarView={calendarView}
-              setCalendarView={setCalendarView}
-              setShowScheduleModal={setShowScheduleModal}
-            />
-          )}
 
           {activeTab === 'templates' && (
             <Templates
