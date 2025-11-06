@@ -17,9 +17,31 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     const sessionId = urlParams.get('session_id');
     const isFromStripeCheckout = success === 'true' || !!sessionId;
     
+    // If coming from checkout, store in localStorage to persist across reloads
     if (isFromStripeCheckout) {
       console.log('✅ Detected Stripe checkout success - will allow access');
       isFromCheckoutRef.current = true;
+      // Store checkout success timestamp in localStorage (expires after 10 minutes)
+      localStorage.setItem('stripe_checkout_success', Date.now().toString());
+      // Clear URL params after storing
+      if (window.history.replaceState) {
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+    
+    // Check localStorage for recent checkout success (within last 10 minutes)
+    const storedCheckoutTime = localStorage.getItem('stripe_checkout_success');
+    if (storedCheckoutTime) {
+      const checkoutTime = parseInt(storedCheckoutTime, 10);
+      const minutesSinceCheckout = (Date.now() - checkoutTime) / (1000 * 60);
+      if (minutesSinceCheckout < 10) {
+        console.log(`✅ Found recent checkout success in localStorage (${minutesSinceCheckout.toFixed(1)} min ago) - allowing access`);
+        isFromCheckoutRef.current = true;
+      } else {
+        // Remove expired checkout flag
+        localStorage.removeItem('stripe_checkout_success');
+      }
     }
 
     const checkAuth = async () => {
@@ -30,14 +52,17 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         return;
       }
       
-      // If coming from checkout, allow access immediately
+      // If coming from checkout (URL params or localStorage), allow access immediately
       if (isFromCheckoutRef.current) {
         console.log('✅ Payment successful! Allowing access - webhook will process subscription in background');
         setAuthenticated(true);
         setLoading(false);
         
-        // Poll for subscription in background (non-blocking)
-        setTimeout(async () => {
+        // Poll for subscription in background (non-blocking) - try multiple times
+        let pollCount = 0;
+        const maxPolls = 10; // Try for up to 30 seconds (10 polls × 3 seconds)
+        const pollInterval = setInterval(async () => {
+          pollCount++;
           const { data: retrySubscription } = await supabase
             .from('user_subscriptions')
             .select('stripe_status, current_period_end, premium_access')
@@ -46,8 +71,15 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
           if (retrySubscription) {
             console.log('✅ Subscription found! Webhook processed successfully');
+            clearInterval(pollInterval);
+            // Clear the checkout flag once subscription is found
+            localStorage.removeItem('stripe_checkout_success');
+            isFromCheckoutRef.current = false;
+          } else if (pollCount >= maxPolls) {
+            console.log('⏳ Subscription still not found after multiple attempts. Webhook may need manual intervention.');
+            clearInterval(pollInterval);
           } else {
-            console.log('⏳ Subscription still processing... webhook may take a few more seconds');
+            console.log(`⏳ Subscription still processing... (attempt ${pollCount}/${maxPolls})`);
           }
         }, 3000);
         
@@ -143,6 +175,16 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
     // Listen for auth changes
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      // Check localStorage for recent checkout success
+      const storedCheckoutTime = localStorage.getItem('stripe_checkout_success');
+      if (storedCheckoutTime) {
+        const checkoutTime = parseInt(storedCheckoutTime, 10);
+        const minutesSinceCheckout = (Date.now() - checkoutTime) / (1000 * 60);
+        if (minutesSinceCheckout < 10) {
+          isFromCheckoutRef.current = true;
+        }
+      }
+      
       // If coming from checkout, always allow access (don't redirect)
       if (isFromCheckoutRef.current) {
         console.log('✅ Allowing access from checkout - webhook will process subscription');
