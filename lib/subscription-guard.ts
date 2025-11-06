@@ -94,13 +94,49 @@ export async function verifyActiveSubscription(userId: string): Promise<Subscrip
     const isActiveStatus = ['active', 'trialing'].includes(subscription.stripe_status);
     
     // Check if not expired
-    const notExpired = subscription.current_period_end 
-      ? new Date(subscription.current_period_end) > new Date() 
-      : false;
+    let notExpired = false;
+    if (subscription.current_period_end) {
+      const periodEndDate = new Date(subscription.current_period_end);
+      const now = new Date();
+      notExpired = periodEndDate > now;
+      
+      console.log('Period end check:', {
+        periodEnd: periodEndDate.toISOString(),
+        now: now.toISOString(),
+        differenceMs: periodEndDate.getTime() - now.getTime(),
+        differenceDays: (periodEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+        notExpired
+      });
+    } else {
+      console.log('⚠️ No current_period_end date found - cannot check expiration');
+      // If no period_end but status is active, still allow (might be newly created)
+      if (isActiveStatus) {
+        console.log('✅ Status is active/trialing but no period_end - allowing access');
+        notExpired = true;
+      }
+    }
 
     const isActive = isActiveStatus && notExpired;
     
-    console.log('Subscription status check:', { isActive, stripe_status: subscription.stripe_status, notExpired, premium_access: subscription.premium_access });
+    console.log('Subscription status check:', { 
+      isActive, 
+      stripe_status: subscription.stripe_status, 
+      notExpired, 
+      premium_access: subscription.premium_access,
+      hasPeriodEnd: !!subscription.current_period_end
+    });
+
+    // If subscription exists but is not active, log detailed info for debugging
+    if (!isActive && subscription) {
+      console.error('❌ Subscription check failed:', {
+        userId,
+        stripe_status: subscription.stripe_status,
+        current_period_end: subscription.current_period_end,
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        isActiveStatus,
+        notExpired
+      });
+    }
 
     return {
       isActive,
@@ -137,27 +173,50 @@ export async function requireActiveSubscription(userId: string | null): Promise<
   // Debug: Log subscription check result
   if (!subscription.isActive) {
     // Give a grace period - check if subscription might be processing
-    // If subscription was created/updated recently (within last 5 minutes), allow access
+    // If subscription was created/updated recently (within last 10 minutes), allow access
     // This handles the race condition where webhook hasn't processed yet
     const supabase = createServerSupabaseClient();
     const { data: recentSubscription } = await supabase
       .from('user_subscriptions')
-      .select('updated_at, created_at')
+      .select('updated_at, created_at, stripe_status, stripe_subscription_id')
       .eq('user_id', userId)
       .maybeSingle();
     
     if (recentSubscription) {
+      // If subscription exists at all, check if it's recent
       const updatedAt = recentSubscription.updated_at ? new Date(recentSubscription.updated_at) : null;
       const createdAt = recentSubscription.created_at ? new Date(recentSubscription.created_at) : null;
       const mostRecent = updatedAt || createdAt;
       
       if (mostRecent) {
         const minutesAgo = (Date.now() - mostRecent.getTime()) / (1000 * 60);
-        if (minutesAgo < 5) {
-          console.log(`⏳ Subscription recently created/updated (${minutesAgo.toFixed(1)} min ago) - allowing access during grace period`);
+        if (minutesAgo < 10) {
+          console.log(`⏳ Subscription recently created/updated (${minutesAgo.toFixed(1)} min ago) - allowing access during grace period`, {
+            status: recentSubscription.stripe_status,
+            subscriptionId: recentSubscription.stripe_subscription_id
+          });
           return { authorized: true };
         }
       }
+      
+      // If subscription exists with a Stripe subscription ID, allow access
+      // This handles cases where webhook saved subscription but with incomplete/incorrect data
+      if (recentSubscription.stripe_subscription_id) {
+        console.log(`⏳ Subscription exists with Stripe ID (${recentSubscription.stripe_subscription_id}) - allowing access (may need webhook update)`, {
+          status: recentSubscription.stripe_status,
+          updatedAt: recentSubscription.updated_at,
+          createdAt: recentSubscription.created_at
+        });
+        return { authorized: true };
+      }
+      
+      // If subscription exists but is older than 10 minutes and no Stripe ID, log detailed info
+      console.warn('⚠️ Subscription exists but is not active and outside grace period:', {
+        status: recentSubscription.stripe_status,
+        updatedAt: recentSubscription.updated_at,
+        createdAt: recentSubscription.created_at,
+        subscriptionId: recentSubscription.stripe_subscription_id
+      });
     }
     
     return {
