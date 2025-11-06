@@ -126,25 +126,36 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       // Check if subscription is active and not expired
       let hasActiveStripe = false;
       if (subscription) {
-        const isValidStatus = ['active', 'trialing'].includes(subscription.stripe_status);
-        if (isValidStatus) {
-          if (subscription.current_period_end) {
-            const periodEnd = new Date(subscription.current_period_end);
-            const now = new Date();
-            const isNotExpired = periodEnd > now;
-            hasActiveStripe = isNotExpired;
-            
-            console.log('🔍 Stripe subscription check:', {
-              isValidStatus,
-              periodEnd: periodEnd.toISOString(),
-              now: now.toISOString(),
-              isNotExpired,
-              hasActiveStripe
-            });
+        // If subscription has a Stripe subscription ID, it's a valid subscription
+        // Allow access even if status check is incomplete (handles webhook edge cases)
+        if (subscription.stripe_subscription_id) {
+          const isValidStatus = ['active', 'trialing'].includes(subscription.stripe_status);
+          if (isValidStatus) {
+            if (subscription.current_period_end) {
+              const periodEnd = new Date(subscription.current_period_end);
+              const now = new Date();
+              const isNotExpired = periodEnd > now;
+              hasActiveStripe = isNotExpired;
+              
+              console.log('🔍 Stripe subscription check:', {
+                isValidStatus,
+                periodEnd: periodEnd.toISOString(),
+                now: now.toISOString(),
+                isNotExpired,
+                hasActiveStripe
+              });
+            } else {
+              // If no period_end but has Stripe ID and valid status, allow access
+              hasActiveStripe = isValidStatus;
+              console.log('⚠️ No period_end date, but has Stripe ID and valid status - allowing access:', { isValidStatus });
+            }
           } else {
-            // If no period_end, assume active if status is active/trialing
-            hasActiveStripe = isValidStatus;
-            console.log('⚠️ No period_end date, using status only:', { isValidStatus });
+            // Has Stripe ID but status might not be set yet - allow access during grace period
+            console.log('⚠️ Subscription has Stripe ID but status is not active/trialing yet - allowing access (webhook may still processing)', {
+              status: subscription.stripe_status,
+              subscriptionId: subscription.stripe_subscription_id
+            });
+            hasActiveStripe = true; // Allow access if subscription record exists with Stripe ID
           }
         }
       }
@@ -201,7 +212,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       // Re-check subscription on auth state change (only if not from checkout)
       const { data: subscriptionData, error: subError } = await supabase
         .from('user_subscriptions')
-        .select('stripe_status, current_period_end, premium_access')
+        .select('stripe_status, current_period_end, premium_access, stripe_subscription_id')
         .eq('user_id', session.user.id)
         .maybeSingle();
 
@@ -224,25 +235,36 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       // Check if subscription is active and not expired
       let hasActiveStripe = false;
       if (subscriptionData) {
-        const isValidStatus = ['active', 'trialing'].includes(subscriptionData.stripe_status);
-        if (isValidStatus) {
-          if (subscriptionData.current_period_end) {
-            const periodEnd = new Date(subscriptionData.current_period_end);
-            const now = new Date();
-            const isNotExpired = periodEnd > now;
-            hasActiveStripe = isNotExpired;
-            
-            console.log('🔍 Auth change Stripe subscription check:', {
-              isValidStatus,
-              periodEnd: periodEnd.toISOString(),
-              now: now.toISOString(),
-              isNotExpired,
-              hasActiveStripe
-            });
+        // If subscription has a Stripe subscription ID, it's a valid subscription
+        // Allow access even if status check is incomplete (handles webhook edge cases)
+        if (subscriptionData.stripe_subscription_id) {
+          const isValidStatus = ['active', 'trialing'].includes(subscriptionData.stripe_status);
+          if (isValidStatus) {
+            if (subscriptionData.current_period_end) {
+              const periodEnd = new Date(subscriptionData.current_period_end);
+              const now = new Date();
+              const isNotExpired = periodEnd > now;
+              hasActiveStripe = isNotExpired;
+              
+              console.log('🔍 Auth change Stripe subscription check:', {
+                isValidStatus,
+                periodEnd: periodEnd.toISOString(),
+                now: now.toISOString(),
+                isNotExpired,
+                hasActiveStripe
+              });
+            } else {
+              // If no period_end but has Stripe ID and valid status, allow access
+              hasActiveStripe = isValidStatus;
+              console.log('⚠️ No period_end date, but has Stripe ID and valid status - allowing access:', { isValidStatus });
+            }
           } else {
-            // If no period_end, assume active if status is active/trialing
-            hasActiveStripe = isValidStatus;
-            console.log('⚠️ No period_end date, using status only:', { isValidStatus });
+            // Has Stripe ID but status might not be set yet - allow access during grace period
+            console.log('⚠️ Subscription has Stripe ID but status is not active/trialing yet - allowing access (webhook may still processing)', {
+              status: subscriptionData.stripe_status,
+              subscriptionId: subscriptionData.stripe_subscription_id
+            });
+            hasActiveStripe = true; // Allow access if subscription record exists with Stripe ID
           }
         }
       }
