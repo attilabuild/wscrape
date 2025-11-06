@@ -16,6 +16,7 @@ export default function Billing() {
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [managingBilling, setManagingBilling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSubscription();
@@ -44,16 +45,38 @@ export default function Billing() {
 
   const handleManageBilling = async () => {
     setManagingBilling(true);
+    setError(null);
     try {
+      // Get auth token for authenticated request
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      if (!token) {
+        throw new Error('Please log in to manage your subscription');
+      }
+
       const response = await fetch('/api/create-portal-session', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create portal session');
+      }
+      
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error('No portal URL returned');
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error creating portal session:', error);
+      setError(error.message || 'Failed to open billing portal. Please try again.');
       setManagingBilling(false);
     }
   };
@@ -143,13 +166,18 @@ export default function Billing() {
               </div>
             </div>
             {subscription.stripe_customer_id && (
-              <button
-                onClick={handleManageBilling}
-                disabled={managingBilling}
-                className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 font-medium whitespace-nowrap"
-              >
-                {managingBilling ? 'Loading...' : 'Manage Subscription'}
-              </button>
+              <div className="flex flex-col items-end gap-2">
+                <button
+                  onClick={handleManageBilling}
+                  disabled={managingBilling}
+                  className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 font-medium whitespace-nowrap"
+                >
+                  {managingBilling ? 'Loading...' : 'Manage Subscription'}
+                </button>
+                {error && (
+                  <p className="text-xs text-red-400 max-w-xs text-right">{error}</p>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -223,13 +251,18 @@ export default function Billing() {
           <p className="text-gray-400 mb-6">
             Manage your payment methods, view invoices, and update billing information through the Stripe Customer Portal.
           </p>
-          <button
-            onClick={handleManageBilling}
-            disabled={managingBilling}
-            className="px-6 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
-          >
-            {managingBilling ? 'Loading...' : 'Open Billing Portal'}
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={handleManageBilling}
+              disabled={managingBilling}
+              className="px-6 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
+            >
+              {managingBilling ? 'Loading...' : 'Open Billing Portal'}
+            </button>
+            {error && (
+              <p className="text-sm text-red-400">{error}</p>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -14,16 +14,25 @@ export async function POST(request: NextRequest) {
 
     // Get Stripe customer ID using service role to bypass RLS
     const serverSupabase = createServerSupabaseClient();
-    const { data: subscription } = await serverSupabase
+    const { data: subscription, error: subError } = await serverSupabase
       .from('user_subscriptions')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, stripe_subscription_id')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
+
+    console.log('📋 Portal session request:', {
+      userId: user.id,
+      hasSubscription: !!subscription,
+      customerId: subscription?.stripe_customer_id,
+      subscriptionId: subscription?.stripe_subscription_id,
+      error: subError
+    });
 
     if (!subscription?.stripe_customer_id) {
       // If no Stripe customer ID, create one or return error
       // For users with premium_access (granted without payment), 
       // they shouldn't need to manage billing
+      console.log('⚠️ No Stripe customer ID found for user:', user.id);
       return NextResponse.json({ 
         error: 'You don\'t have a Stripe subscription. Contact support for billing assistance.' 
       }, { status: 400 });
