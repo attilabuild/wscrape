@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApifyScraper } from '@/lib/apify-scraper';
 import { createSupabaseFromRequest } from '@/lib/supabase-server';
 import { requireActiveSubscription } from '@/lib/subscription-guard';
+import { logger } from '@/lib/logger';
+import { withRateLimit, RATE_LIMITS, getUserIdentifier } from '@/lib/rate-limit';
+import { validateRequest, scrapeSchema } from '@/lib/validation';
 
 interface ScrapeRequest {
   username: string;
@@ -34,11 +37,39 @@ function cleanUsername(username: string): string {
 
 
 export async function POST(request: NextRequest) {
-  let cleanUser = '';
-  let platform: 'tiktok' | 'instagram' = 'instagram';
-  let validCount = 5;
-  
   try {
+    // Rate limiting
+    const rateLimitResult = await withRateLimit(
+      request,
+      RATE_LIMITS.scraping,
+      getUserIdentifier
+    );
+
+    if (!rateLimitResult.success) {
+      return rateLimitResult.response!;
+    }
+
+    // Input validation
+    const validation = await validateRequest(request, scrapeSchema);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: validation.status }
+      );
+    }
+
+    const { username, platform: reqPlatform } = validation.data;
+    
+    // Only allow Instagram scraping
+    if (reqPlatform && reqPlatform !== 'instagram') {
+      return NextResponse.json(
+        { error: 'Only Instagram scraping is supported. TikTok scraping has been removed.' },
+        { status: 400 }
+      );
+    }
+    
+    const platform: 'instagram' = 'instagram'; // Force Instagram only
+    
     // 🔒 SECURITY: Verify user authentication
     const supabase = await createSupabaseFromRequest(request);
     
@@ -47,7 +78,7 @@ export async function POST(request: NextRequest) {
     const token = authHeader?.replace('Bearer ', '');
     
     if (!token) {
-      console.log('Scrape: No token in Authorization header');
+      logger.warn('Scrape: No token in Authorization header');
       return NextResponse.json(
         { error: 'Unauthorized - Please login' },
         { status: 401 }
@@ -58,53 +89,35 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
+      logger.warn('Scrape: Authentication failed', { error: authError?.message });
       return NextResponse.json(
         { error: 'Unauthorized - Please login' },
         { status: 401 }
       );
     }
 
-    // Debug: Log user ID
-    console.log('User ID from session:', user.id);
+    logger.debug('Scrape request', { userId: user.id, username });
     
     // 🔒 SECURITY: Verify active subscription (SERVER-SIDE - CANNOT BE BYPASSED)
     const subscriptionCheck = await requireActiveSubscription(user.id);
     
     if (!subscriptionCheck.authorized) {
-      console.log('Subscription check failed:', subscriptionCheck);
+      logger.warn('Scrape: Subscription check failed', { userId: user.id, reason: subscriptionCheck.error });
       return NextResponse.json(
         { error: subscriptionCheck.error },
         { status: subscriptionCheck.status }
       );
     }
     
-    console.log('Subscription authorized!');
-
-    const body: ScrapeRequest = await request.json();
-    const { username, platform: reqPlatform } = body;
-    
-    // Only allow Instagram scraping
-    if (reqPlatform && reqPlatform !== 'instagram') {
-      return NextResponse.json(
-        { error: 'Only Instagram scraping is supported. TikTok scraping has been removed.' },
-        { status: 400 }
-      );
-    }
-    
-    platform = 'instagram'; // Force Instagram only
-    
-    if (!username) {
-      return NextResponse.json(
-        { error: 'Username is required' },
-        { status: 400 }
-      );
-    }
+    logger.debug('Scrape: Subscription authorized', { userId: user.id });
     
     // Clean the username (remove @ if present)
-    cleanUser = cleanUsername(username);
+    const cleanUser = cleanUsername(username);
     
     // Always fetch the latest 10 real videos
-    validCount = 10;
+    const validCount = 10;
+    
+    logger.info('Scraping Instagram content', { username: cleanUser, userId: user.id });
     
     // Use real Apify scraper
     const scraper = new ApifyScraper({
@@ -116,11 +129,18 @@ export async function POST(request: NextRequest) {
     const { videos, dataSource } = await scraper.scrapeVideos();
     
     if (!videos || videos.length === 0) {
+      logger.warn('No videos found', { username: cleanUser, platform });
       return NextResponse.json(
         { error: `No videos found for @${cleanUser} on ${platform}` },
         { status: 404 }
       );
     }
+
+    logger.info('Scraping completed', { 
+      username: cleanUser, 
+      videoCount: videos.length,
+      userId: user.id 
+    });
 
     return NextResponse.json({
       success: true,
@@ -137,9 +157,12 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
+    logger.error('Scrape API error', error, { 
+      endpoint: '/api/scrape' 
+    });
+    
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch videos';
     
-    // For other errors, return the error
     return NextResponse.json(
       { error: errorMessage },
       { status: errorMessage.includes('No real TikTok videos found') || errorMessage.includes('Failed to scrape real') ? 404 : 500 }

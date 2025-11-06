@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AIAnalysisEngine } from '@/lib/ai-analysis';
 import { createSupabaseFromRequest } from '@/lib/supabase-server';
 import { requireActiveSubscription } from '@/lib/subscription-guard';
+import { logger } from '@/lib/logger';
+import { withRateLimit, RATE_LIMITS, getUserIdentifier } from '@/lib/rate-limit';
+import { validateRequest, aiAnalysisSchema } from '@/lib/validation';
 
 export const maxDuration = 60; // 60 seconds max for Vercel Pro
 export const runtime = 'nodejs';
@@ -31,7 +34,29 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 export async function POST(request: NextRequest) {
   try {
-    // 🔒 SECURITY: Verify user authentication - Use service role client to bypass RLS
+    // Rate limiting
+    const rateLimitResult = await withRateLimit(
+      request,
+      RATE_LIMITS.ai,
+      getUserIdentifier
+    );
+
+    if (!rateLimitResult.success) {
+      return rateLimitResult.response!;
+    }
+
+    // Input validation
+    const validation = await validateRequest(request, aiAnalysisSchema);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: validation.status }
+      );
+    }
+
+    const { action, payload } = validation.data;
+
+    // 🔒 SECURITY: Verify user authentication
     const supabase = await createSupabaseFromRequest(request);
     
     // Get auth header from request
@@ -39,7 +64,7 @@ export async function POST(request: NextRequest) {
     const token = authHeader?.replace('Bearer ', '');
     
     if (!token) {
-      console.log('AI Analysis: No token in Authorization header');
+      logger.warn('AI Analysis: No token in Authorization header');
       return NextResponse.json(
         { error: 'Unauthorized - Please login' },
         { status: 401 }
@@ -50,31 +75,30 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.log('AI Analysis auth failed:', { error: authError, hasUser: !!user });
+      logger.warn('AI Analysis: Authentication failed', { error: authError?.message });
       return NextResponse.json(
         { error: 'Unauthorized - Please login' },
         { status: 401 }
       );
     }
 
-    // Debug: Log user ID
-    console.log('AI Analysis - User ID from session:', user.id);
+    logger.debug('AI Analysis request', { userId: user.id, action });
     
     // 🔒 SECURITY: Verify active subscription (SERVER-SIDE - CANNOT BE BYPASSED)
     const subscriptionCheck = await requireActiveSubscription(user.id);
     
     if (!subscriptionCheck.authorized) {
-      console.log('AI Analysis subscription check failed:', subscriptionCheck);
+      logger.warn('AI Analysis: Subscription check failed', { 
+        userId: user.id, 
+        reason: subscriptionCheck.error 
+      });
       return NextResponse.json(
         { error: subscriptionCheck.error },
         { status: subscriptionCheck.status }
       );
     }
     
-    console.log('AI Analysis - Subscription authorized!');
-
-    const body: AIAnalysisRequest = await request.json();
-    const { action, payload } = body;
+    logger.debug('AI Analysis: Subscription authorized', { userId: user.id });
 
     // Initialize AI Analysis Engine
     if (!OPENAI_API_KEY) {
