@@ -21,24 +21,8 @@ export const scrapeSchema = z.object({
 
 // AI Analysis API validation
 export const aiAnalysisSchema = z.object({
-  action: z.enum(['analyze_content', 'competitor_analysis', 'hashtag_strategy']),
-  payload: z.object({
-    videos: z.array(z.object({
-      id: z.string().optional(),
-      title: z.string().optional(),
-      description: z.string().optional(),
-      views: z.number().min(0).optional(),
-      likes: z.number().min(0).optional(),
-      comments: z.number().min(0).optional(),
-      shares: z.number().min(0).optional(),
-      engagementRate: z.number().min(0).max(100).optional(),
-      url: z.string().url().optional(),
-    })).optional(),
-    username: z.string().min(1).max(50).optional(),
-    niche: z.string().max(100).optional(),
-    competitors: z.array(z.string()).max(10).optional(),
-    hashtags: z.array(z.string()).max(50).optional(),
-  }),
+  action: z.enum(['analyze_content', 'generate_suggestions', 'optimize_content', 'competitor_analysis', 'hashtag_strategy']),
+  payload: z.any(), // Allow any payload structure since different actions have different requirements
 });
 
 // Viral Analysis API validation

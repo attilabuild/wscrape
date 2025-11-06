@@ -108,19 +108,19 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'analyze_content':
-        return await handleContentAnalysis(aiEngine, payload);
+        return await handleContentAnalysis(aiEngine, payload as any);
       
       case 'generate_suggestions':
-        return await handleContentSuggestions(aiEngine, payload);
+        return await handleContentSuggestions(aiEngine, payload as any);
       
       case 'optimize_content':
-        return await handleContentOptimization(aiEngine, payload);
+        return await handleContentOptimization(aiEngine, payload as any);
       
       case 'competitor_analysis':
-        return await handleCompetitorAnalysis(aiEngine, payload);
+        return await handleCompetitorAnalysis(aiEngine, payload as any);
       
       case 'hashtag_strategy':
-        return await handleHashtagStrategy(aiEngine, payload);
+        return await handleHashtagStrategy(aiEngine, payload as any);
       
       default:
         return NextResponse.json(
