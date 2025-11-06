@@ -31,7 +31,7 @@ export default function Billing() {
         .from('user_subscriptions')
         .select('stripe_status, current_period_start, current_period_end, cancel_at_period_end, stripe_customer_id, premium_access')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (data) {
         setSubscription(data);

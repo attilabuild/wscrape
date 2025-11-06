@@ -39,7 +39,7 @@ export default function Sidebar({
           .from('user_subscriptions')
           .select('premium_access, stripe_status')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
         
         if (subscription?.premium_access) {
           setPlanName('Premium');
